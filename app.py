@@ -41,7 +41,6 @@ st.markdown("""
         line-height: 1.7;
         color: #f8fafc;
     }
-
     .section-header {
         font-size: 13px;
         font-weight: 800;
@@ -54,7 +53,6 @@ st.markdown("""
         align-items: center;
         gap: 8px;
     }
-
     .white-card {
         background-color: white;
         border-radius: 14px;
@@ -63,7 +61,6 @@ st.markdown("""
         border: 1px solid #f0f0f0;
         margin-bottom: 16px;
     }
-
     .kpi-container { display: flex; gap: 14px; margin-top: 16px; flex-wrap: wrap; }
     .kpi-card {
         background: white;
@@ -75,17 +72,13 @@ st.markdown("""
         border: 1px solid #f0f0f0;
         transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
-    .kpi-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0px 12px 28px rgba(0,0,0,0.1);
-    }
-    .kpi-icon { font-size: 22px; }
+    .kpi-card:hover { transform: translateY(-5px); box-shadow: 0px 12px 28px rgba(0,0,0,0.1); }
+    .kpi-icon  { font-size: 22px; }
     .kpi-title { font-size: 10px; font-weight: 700; color: #999; text-transform: uppercase; margin-top: 6px; letter-spacing: 0.5px; }
     .kpi-value { font-size: 24px; font-weight: 800; color: #111; margin: 4px 0; }
     .kpi-delta-down { font-size: 12px; font-weight: 600; color: #e11d48; }
     .kpi-delta-up   { font-size: 12px; font-weight: 600; color: #059669; }
     .kpi-neutral    { font-size: 12px; font-weight: 600; color: #94a3b8; }
-
     .insight-box {
         border-radius: 8px;
         padding: 12px 16px;
@@ -93,8 +86,30 @@ st.markdown("""
         margin-top: 12px;
         line-height: 1.6;
     }
-
-    div[data-testid="stSlider"] > div { padding-top: 0 !important; }
+    .conclusion-box {
+        background: linear-gradient(135deg, #1a1528 0%, #2d1f4e 100%);
+        border-radius: 16px;
+        padding: 36px;
+        color: white;
+        margin-top: 48px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    }
+    .conclusion-box p {
+        color: #e2e8f0;
+        font-size: 15px;
+        line-height: 1.8;
+        margin-bottom: 16px;
+    }
+    .conclusion-box strong { color: #ffffff; }
+    .tag {
+        display: inline-block;
+        padding: 6px 16px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 700;
+        margin: 6px 6px 0 0;
+        color: white;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -109,51 +124,46 @@ def load_data():
         df_uk = pd.DataFrame({
             'Year': dates,
             'Country Name': 'United Kingdom',
-            'Life Expectancy': np.linspace(77.7, 81.3, 25),
+            'Life Expectancy':     np.linspace(77.7, 81.3, 25),
             'Healthcare Spending': np.linspace(2000, 5000, 25),
-            'GDP per capita': np.linspace(26000, 48000, 25),
-            'Water Access': np.linspace(99.4, 100.0, 25),   # FIX: was scalar → RLM singular matrix
-            'CO2 Emissions': np.linspace(9.6, 5.0, 25)
+            'GDP per capita':      np.linspace(26000, 48000, 25),
+            'Water Access':        np.linspace(99.4, 100.0, 25),
+            'CO2 Emissions':       np.linspace(9.6, 5.0, 25)
         })
         df_us = pd.DataFrame({
             'Year': dates,
             'Country Name': 'United States',
-            'Life Expectancy': np.linspace(76.7, 78.5, 25),
+            'Life Expectancy':     np.linspace(76.7, 78.5, 25),
             'Healthcare Spending': np.linspace(4000, 12000, 25),
-            'GDP per capita': np.linspace(36000, 70000, 25),
-            'Water Access': np.linspace(98.8, 99.5, 25),    # FIX: was scalar
-            'CO2 Emissions': np.linspace(20.0, 14.0, 25)
+            'GDP per capita':      np.linspace(36000, 70000, 25),
+            'Water Access':        np.linspace(98.8, 99.5, 25),
+            'CO2 Emissions':       np.linspace(20.0, 14.0, 25)
         })
-        # Simulate COVID dip
         df_uk.loc[20:21, 'Life Expectancy'] -= 1.0
         df_us.loc[20:21, 'Life Expectancy'] -= 1.5
         df = pd.concat([df_uk, df_us], ignore_index=True)
 
-    # Drop rows with any NaN in key columns
     df = df.dropna(subset=[
         "Healthcare Spending", "Water Access",
         "GDP per capita", "CO2 Emissions", "Life Expectancy"
     ]).reset_index(drop=True)
 
-    # Healthcare Efficiency metric
     df['Efficiency'] = df['Life Expectancy'] / (df['Healthcare Spending'] / 1000)
 
-    # FIX: wrap RLM in try/except so a bad CSV never crashes the whole app
     try:
-        X = df[["Healthcare Spending", "Water Access", "GDP per capita", "CO2 Emissions"]]
-        y = df["Life Expectancy"]
+        X       = df[["Healthcare Spending", "Water Access", "GDP per capita", "CO2 Emissions"]]
+        y       = df["Life Expectancy"]
         X_const = sm.add_constant(X)
-        rlm_model = sm.RLM(y, X_const, M=sm.robust.norms.HuberT()).fit()
-        df['Predicted'] = rlm_model.fittedvalues
+        rlm     = sm.RLM(y, X_const, M=sm.robust.norms.HuberT()).fit()
+        df['Predicted'] = rlm.fittedvalues
     except Exception:
-        df['Predicted'] = df['Life Expectancy']   # graceful fallback
+        df['Predicted'] = df['Life Expectancy']
 
     return df
 
 
 df = load_data()
 
-# ── COLORS ────────────────────────────────────────────────────────────────────
 C_UK     = "#9b51e0"
 C_US     = "#0ea5e9"
 C_ORANGE = "#f59e0b"
@@ -167,11 +177,11 @@ st.markdown("""
 <div class="academic-header">
     <div class="academic-title">🌍 Understanding the Drivers of Life Expectancy Across Countries</div>
     <div class="academic-subtitle">SDG 3: Good Health and Well-Being</div>
-    <div style="border-top: 1px solid rgba(255,255,255,0.15); margin: 16px 0;"></div>
+    <div style="border-top:1px solid rgba(255,255,255,0.15);margin:16px 0;"></div>
     <div class="academic-meta"><strong>Prepared by:</strong> Juliana Paula T. Binas</div>
     <div class="academic-meta"><strong>Course, Year &amp; Section:</strong> BSIS 3A &nbsp;|&nbsp; West Visayas State University</div>
     <div class="academic-quote">
-        <strong style="color:#0ea5e9; font-size:15px;">Research Question:</strong>
+        <strong style="color:#0ea5e9;font-size:15px;">Research Question:</strong>
         What factors influence Life Expectancy across countries?<br><br>
         This comprehensive dashboard investigates the multifaceted drivers of life expectancy using
         24 years of real-world macroeconomic and public health data from the World Bank and Our World
@@ -185,16 +195,19 @@ st.markdown("""
 # ── FILTERS ───────────────────────────────────────────────────────────────────
 with st.container(border=True):
     st.markdown("<p style='font-size:12px;font-weight:700;color:#666;margin-bottom:-10px;'>"
-                "<span style='color:#9b51e0;'>⚲</span> YEAR FILTER</p>", unsafe_allow_html=True)
+                "<span style='color:#9b51e0;'>⚲</span> YEAR FILTER</p>",
+                unsafe_allow_html=True)
     selected_year = st.slider(
         "", min_value=int(df['Year'].min()), max_value=int(df['Year'].max()),
         value=int(df['Year'].max()), label_visibility="collapsed"
     )
     col_f1, col_f2, col_f3 = st.columns([1, 2, 2])
     with col_f1:
-        st.markdown(f"<h1 style='color:#4c1d95;margin-top:0'>{selected_year}</h1>", unsafe_allow_html=True)
+        st.markdown(f"<h1 style='color:#4c1d95;margin-top:0'>{selected_year}</h1>",
+                    unsafe_allow_html=True)
     with col_f2:
-        selected_country = st.selectbox("COUNTRY", ["Both countries", "United Kingdom", "United States"])
+        selected_country = st.selectbox("COUNTRY",
+            ["Both countries", "United Kingdom", "United States"])
     with col_f3:
         selected_metric = st.selectbox("METRIC", [
             "All of the above", "Life Expectancy",
@@ -204,15 +217,13 @@ with st.container(border=True):
                 'Hover over charts for exact details</div>', unsafe_allow_html=True)
 
 
-# ── DATA FILTERING ────────────────────────────────────────────────────────────
-chart_df = (df.copy() if selected_country == "Both countries"
-            else df[df['Country Name'] == selected_country].copy())
-
+# ── DATA FILTER ───────────────────────────────────────────────────────────────
+chart_df     = (df.copy() if selected_country == "Both countries"
+                else df[df['Country Name'] == selected_country].copy())
 current_data = chart_df[chart_df['Year'] == selected_year]
 prev_data    = chart_df[chart_df['Year'] == (selected_year - 1)]
 
 
-# ── HELPERS ───────────────────────────────────────────────────────────────────
 def get_mean(dataframe, col):
     if dataframe is None or dataframe.empty or col not in dataframe.columns:
         return None
@@ -220,36 +231,36 @@ def get_mean(dataframe, col):
     return float(val) if not pd.isna(val) else None
 
 
+def safe_delta(cur, prev_df, col):
+    if cur is None: return None
+    p = get_mean(prev_df, col)
+    return None if p is None else cur - p
+
+
 def format_delta(delta, fmt="standard"):
-    """Returns colored HTML delta string. delta=None means no prior data."""
     if delta is None:
         return "<span class='kpi-neutral'>No prior data</span>"
     if abs(delta) < 0.001:
         return "<span class='kpi-neutral'>No change</span>"
     prefix = "▲" if delta > 0 else "▼"
     if fmt == "co2":
-        cls = "kpi-delta-down" if delta > 0 else "kpi-delta-up"
-        val_str = f"{abs(delta):.1f} t"
+        cls, val_str = ("kpi-delta-down" if delta > 0 else "kpi-delta-up"), f"{abs(delta):.1f} t"
     elif fmt == "currency":
-        cls = "kpi-delta-up" if delta > 0 else "kpi-delta-down"
-        val_str = f"${abs(delta):,.0f}"
+        cls, val_str = ("kpi-delta-up" if delta > 0 else "kpi-delta-down"), f"${abs(delta):,.0f}"
     elif fmt == "pct":
-        cls = "kpi-delta-up" if delta > 0 else "kpi-delta-down"
-        val_str = f"{abs(delta):.2f}%"
+        cls, val_str = ("kpi-delta-up" if delta > 0 else "kpi-delta-down"), f"{abs(delta):.2f}%"
     else:
-        cls = "kpi-delta-up" if delta > 0 else "kpi-delta-down"
-        val_str = f"{abs(delta):.2f}"
+        cls, val_str = ("kpi-delta-up" if delta > 0 else "kpi-delta-down"), f"{abs(delta):.2f}"
     return f"<span class='{cls}'>{prefix} {val_str} vs prior year</span>"
 
 
-# FIX: guard all deltas when prev_data is empty (e.g. slider at min year)
-def safe_delta(cur_val, prev_df, col):
-    if cur_val is None:
-        return None
-    prev_val = get_mean(prev_df, col)
-    if prev_val is None:
-        return None
-    return cur_val - prev_val
+def fv(val, fmt="plain"):
+    if val is None: return "N/A"
+    if fmt == "yrs":  return f"{val:.1f} yrs"
+    if fmt == "usd":  return f"${val:,.0f}"
+    if fmt == "tons": return f"{val:.1f} t"
+    if fmt == "pct":  return f"{val:.1f}%"
+    return f"{val:.2f}"
 
 
 val_life   = get_mean(current_data, 'Life Expectancy')
@@ -264,15 +275,6 @@ d_gdp    = safe_delta(val_gdp,    prev_data, 'GDP per capita')
 d_co2    = safe_delta(val_co2,    prev_data, 'CO2 Emissions')
 d_water  = safe_delta(val_water,  prev_data, 'Water Access')
 
-# Format display values safely
-def fv(val, fmt="plain"):
-    if val is None: return "N/A"
-    if fmt == "yrs":    return f"{val:.1f} yrs"
-    if fmt == "usd":    return f"${val:,.0f}"
-    if fmt == "tons":   return f"{val:.1f} t"
-    if fmt == "pct":    return f"{val:.1f}%"
-    return f"{val:.2f}"
-
 
 # ── KPI CARDS ─────────────────────────────────────────────────────────────────
 st.markdown(f"""
@@ -280,32 +282,32 @@ st.markdown(f"""
     <div class="kpi-card" style="border-top:4px solid {C_UK};">
         <div class="kpi-icon">🫀</div>
         <div class="kpi-title">Life Expectancy</div>
-        <div class="kpi-value">{fv(val_life, 'yrs')}</div>
+        <div class="kpi-value">{fv(val_life,'yrs')}</div>
         {format_delta(d_life)}
     </div>
     <div class="kpi-card" style="border-top:4px solid #3b82f6;">
         <div class="kpi-icon">🏥</div>
         <div class="kpi-title">Healthcare Spending</div>
-        <div class="kpi-value">{fv(val_health, 'usd')}</div>
-        {format_delta(d_health, 'currency')}
+        <div class="kpi-value">{fv(val_health,'usd')}</div>
+        {format_delta(d_health,'currency')}
     </div>
     <div class="kpi-card" style="border-top:4px solid {C_ORANGE};">
         <div class="kpi-icon">💰</div>
         <div class="kpi-title">GDP Per Capita</div>
-        <div class="kpi-value">{fv(val_gdp, 'usd')}</div>
-        {format_delta(d_gdp, 'currency')}
+        <div class="kpi-value">{fv(val_gdp,'usd')}</div>
+        {format_delta(d_gdp,'currency')}
     </div>
     <div class="kpi-card" style="border-top:4px solid {C_RED};">
         <div class="kpi-icon">☁️</div>
         <div class="kpi-title">CO₂ Emissions</div>
-        <div class="kpi-value">{fv(val_co2, 'tons')}</div>
-        {format_delta(d_co2, 'co2')}
+        <div class="kpi-value">{fv(val_co2,'tons')}</div>
+        {format_delta(d_co2,'co2')}
     </div>
     <div class="kpi-card" style="border-top:4px solid {C_GREEN};">
         <div class="kpi-icon">💧</div>
         <div class="kpi-title">Water Access</div>
-        <div class="kpi-value">{fv(val_water, 'pct')}</div>
-        {format_delta(d_water, 'pct')}
+        <div class="kpi-value">{fv(val_water,'pct')}</div>
+        {format_delta(d_water,'pct')}
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -321,7 +323,7 @@ st.markdown("""
 show_all = (selected_metric == "All of the above")
 
 
-# ── SECTION 1: TRENDS OVER TIME ───────────────────────────────────────────────
+# ── SECTION 1: TRENDS ─────────────────────────────────────────────────────────
 if show_all or selected_metric == "Life Expectancy":
     st.markdown('<div class="section-header">'
                 '<span style="color:#9b51e0;font-size:20px;">●</span>'
@@ -330,130 +332,93 @@ if show_all or selected_metric == "Life Expectancy":
     c1, c2 = st.columns([2.5, 1])
 
     with c1:
-        # FIX: white-card opened and properly closed around plotly chart
         st.markdown('<div class="white-card">', unsafe_allow_html=True)
         st.markdown('<strong style="font-size:15px;">📈 Life Expectancy Over Time</strong>'
                     ' <span style="background:#f3e8ff;color:#6b21a8;padding:2px 8px;'
                     'border-radius:10px;font-size:11px;">Trend</span>', unsafe_allow_html=True)
-        fig1 = px.line(
-            chart_df, x='Year', y='Life Expectancy', color='Country Name',
-            color_discrete_map=COUNTRY_COLORS, markers=True,
-            hover_data={"Year": True, "Life Expectancy": ":.1f"}
-        )
+        fig1 = px.line(chart_df, x='Year', y='Life Expectancy', color='Country Name',
+                       color_discrete_map=COUNTRY_COLORS, markers=True,
+                       hover_data={"Year": True, "Life Expectancy": ":.1f"})
         fig1.add_vline(x=selected_year, line_width=2, line_dash="dash",
                        line_color="gray", opacity=0.4)
-        fig1.update_layout(
-            margin=dict(l=0, r=0, t=20, b=0),
-            plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)',
-            yaxis=dict(showgrid=True, gridcolor='#f1f1f1'),
-            legend=dict(orientation="h", y=-0.15)
-        )
+        fig1.update_layout(margin=dict(l=0,r=0,t=20,b=0), plot_bgcolor='rgba(0,0,0,0)',
+                           paper_bgcolor='rgba(0,0,0,0)',
+                           yaxis=dict(showgrid=True, gridcolor='#f1f1f1'),
+                           legend=dict(orientation="h", y=-0.15))
         st.plotly_chart(fig1, use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)   # FIX: closes white-card
+        st.markdown('</div>', unsafe_allow_html=True)
 
     with c2:
         st.markdown('<div class="white-card">', unsafe_allow_html=True)
-        st.markdown(
-            f'<strong style="font-size:15px;">📊 Country Comparison</strong>'
-            f' <span style="background:#fce7f3;color:#9f1239;padding:2px 8px;'
-            f'border-radius:10px;font-size:11px;">{selected_year}</span>',
-            unsafe_allow_html=True
-        )
-        fig2 = px.bar(
-            current_data, x='Country Name', y='Life Expectancy', color='Country Name',
-            color_discrete_map=COUNTRY_COLORS, hover_data={"Life Expectancy": ":.1f"}
-        )
-        fig2.update_layout(
-            showlegend=False,
-            margin=dict(l=0, r=0, t=20, b=0),
-            plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)'
-        )
+        st.markdown(f'<strong style="font-size:15px;">📊 Country Comparison</strong>'
+                    f' <span style="background:#fce7f3;color:#9f1239;padding:2px 8px;'
+                    f'border-radius:10px;font-size:11px;">{selected_year}</span>',
+                    unsafe_allow_html=True)
+        fig2 = px.bar(current_data, x='Country Name', y='Life Expectancy',
+                      color='Country Name', color_discrete_map=COUNTRY_COLORS,
+                      hover_data={"Life Expectancy": ":.1f"})
+        fig2.update_layout(showlegend=False, margin=dict(l=0,r=0,t=20,b=0),
+                           plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(fig2, use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)   # FIX: closes white-card
+        st.markdown('</div>', unsafe_allow_html=True)
 
 
 # ── SECTION 2: KEY DRIVERS ────────────────────────────────────────────────────
-driver_metrics = {
+driver_map = {
     "Healthcare Spending": "health",
     "GDP per capita":      "gdp",
     "Water Access":        "water",
     "CO2 Emissions":       "co2",
 }
-charts_to_show = (
-    list(driver_metrics.values()) if show_all
-    else ([driver_metrics[selected_metric]] if selected_metric in driver_metrics else [])
-)
+charts_to_show = (list(driver_map.values()) if show_all
+                  else ([driver_map[selected_metric]] if selected_metric in driver_map else []))
+
+DRIVER_CONFIG = {
+    "health": dict(title="🏥 Healthcare Spending", color="#3b82f6",
+                   x="Healthcare Spending", y="Life Expectancy",
+                   bg="#f0f9ff", border="#00b4d8", tc="#0c4a6e",
+                   insight="<strong>Positive ↑</strong> — More investment generally leads to longer lives. "
+                           "The plateau in the USA suggests diminishing marginal returns."),
+    "gdp":    dict(title="💰 GDP Per Capita", color=C_ORANGE,
+                   x="GDP per capita", y="Life Expectancy",
+                   bg="#fffbeb", border=C_ORANGE, tc="#92400e",
+                   insight="<strong>Positive ↑</strong> — Wealthier nations have higher living standards, "
+                           "allowing citizens to afford better nutrition and safer housing."),
+    "water":  dict(title="💧 Water Access", color=C_GREEN,
+                   x="Year", y="Water Access",
+                   bg="#ecfdf5", border=C_GREEN, tc="#065f46",
+                   insight="<strong>Positive ↑</strong> — Universal access to clean water directly cuts "
+                           "the burden of preventable diseases. It is the absolute prerequisite."),
+    "co2":    dict(title="☁️ CO₂ Emissions", color=C_RED,
+                   x="Year", y="CO2 Emissions",
+                   bg="#fef2f2", border=C_RED, tc="#991b1b",
+                   insight="<strong>Negative ↓</strong> — High carbon emissions indicate severe air pollution. "
+                           "Long-term exposure triggers respiratory diseases."),
+}
 
 if charts_to_show:
     st.markdown('<div class="section-header">'
                 '<span style="color:#0ea5e9;font-size:20px;">●</span>'
                 ' KEY DRIVERS — WHAT AFFECTS LIFE EXPECTANCY?</div>', unsafe_allow_html=True)
 
-    # FIX: guard against st.columns(0)
     cols = st.columns(len(charts_to_show))
-
-    DRIVER_CONFIG = {
-        "health": {
-            "title": "🏥 Healthcare Spending", "color": "#3b82f6",
-            "x": "Healthcare Spending", "y": "Life Expectancy", "kind": "scatter",
-            "insight_bg": "#f0f9ff", "insight_border": "#00b4d8", "insight_text": "#0c4a6e",
-            "insight": "<strong>Positive ↑</strong> — More investment generally leads to longer lives. "
-                       "The plateau effect in the USA suggests diminishing marginal returns."
-        },
-        "gdp": {
-            "title": "💰 GDP Per Capita", "color": C_ORANGE,
-            "x": "GDP per capita", "y": "Life Expectancy", "kind": "scatter",
-            "insight_bg": "#fffbeb", "insight_border": C_ORANGE, "insight_text": "#92400e",
-            "insight": "<strong>Positive ↑</strong> — Wealthier nations have higher living standards, "
-                       "allowing citizens to afford better nutrition and safer housing."
-        },
-        "water": {
-            "title": "💧 Water Access", "color": C_GREEN,
-            "x": "Year", "y": "Water Access", "kind": "scatter",
-            "insight_bg": "#ecfdf5", "insight_border": C_GREEN, "insight_text": "#065f46",
-            "insight": "<strong>Positive ↑</strong> — Universal access to clean water directly cuts "
-                       "the burden of preventable diseases. It is the absolute prerequisite."
-        },
-        "co2": {
-            "title": "☁️ CO₂ Emissions", "color": C_RED,
-            "x": "Year", "y": "CO2 Emissions", "kind": "scatter",
-            "insight_bg": "#fef2f2", "insight_border": C_RED, "insight_text": "#991b1b",
-            "insight": "<strong>Negative ↓</strong> — High carbon emissions indicate severe air pollution. "
-                       "Long-term exposure triggers respiratory diseases."
-        },
-    }
-
     for i, key in enumerate(charts_to_show):
         cfg = DRIVER_CONFIG[key]
         with cols[i]:
-            # FIX: white-card opened, chart rendered, then SINGLE closing </div>
-            st.markdown(
-                f'<div class="white-card">'
-                f'<h4 style="color:{cfg["color"]};margin-top:0;">{cfg["title"]}</h4>',
-                unsafe_allow_html=True
-            )
-            fig = px.scatter(
-                chart_df, x=cfg["x"], y=cfg["y"],
-                color='Country Name', color_discrete_map=COUNTRY_COLORS,
-                trendline="lowess" if cfg["kind"] == "scatter" else None
-            )
-            fig.update_layout(
-                margin=dict(l=0, r=0, t=10, b=0),
-                plot_bgcolor='rgba(0,0,0,0)',
-                paper_bgcolor='rgba(0,0,0,0)',
-                showlegend=False, height=280
-            )
+            st.markdown(f'<div class="white-card">'
+                        f'<h4 style="color:{cfg["color"]};margin-top:0;">{cfg["title"]}</h4>',
+                        unsafe_allow_html=True)
+            fig = px.scatter(chart_df, x=cfg["x"], y=cfg["y"],
+                             color='Country Name', color_discrete_map=COUNTRY_COLORS,
+                             trendline="lowess")
+            fig.update_layout(margin=dict(l=0,r=0,t=10,b=0), height=280,
+                              plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
+                              showlegend=False)
             st.plotly_chart(fig, use_container_width=True)
-            # FIX: exactly ONE closing </div> for white-card, insight box is inside it
-            st.markdown(
-                f'<div class="insight-box" style="background:{cfg["insight_bg"]}; '
-                f'color:{cfg["insight_text"]}; border-left:4px solid {cfg["insight_border"]};">'
-                f'{cfg["insight"]}</div>'
-                f'</div>',   # ← closes white-card
-                unsafe_allow_html=True
-            )
+            st.markdown(f'<div class="insight-box" style="background:{cfg["bg"]}; '
+                        f'color:{cfg["tc"]}; border-left:4px solid {cfg["border"]};">'
+                        f'{cfg["insight"]}</div></div>',
+                        unsafe_allow_html=True)
 
 
 # ── SECTION 3: REGRESSION MODEL ──────────────────────────────────────────────
@@ -495,21 +460,18 @@ if show_all:
             fig_pred.add_trace(go.Scatter(
                 x=c_df['Year'], y=c_df['Life Expectancy'],
                 mode='lines+markers', name=f'{country} Actual',
-                line=dict(color=color, width=3)
-            ))
+                line=dict(color=color, width=3)))
             if 'Predicted' in c_df.columns:
                 fig_pred.add_trace(go.Scatter(
                     x=c_df['Year'], y=c_df['Predicted'],
                     mode='lines', name=f'{country} Predicted',
-                    line=dict(color=color, width=2, dash='dash')
-                ))
+                    line=dict(color=color, width=2, dash='dash')))
         fig_pred.update_layout(
-            margin=dict(l=0, r=0, t=0, b=0), height=240,
-            legend=dict(orientation="h", y=-0.25, x=0, font=dict(size=11)),
-            plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)'
-        )
+            margin=dict(l=0,r=0,t=0,b=0), height=240,
+            legend=dict(orientation="h", y=-0.3, x=0, font=dict(size=11)),
+            plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(fig_pred, use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)   # closes white-card
+        st.markdown('</div>', unsafe_allow_html=True)
 
     with r2:
         st.markdown("""
@@ -520,111 +482,118 @@ if show_all:
                 <span style="background:#f3e8ff;color:#6b21a8;padding:2px 8px;
                       border-radius:10px;font-size:11px;">from RLM coefficients</span>
             </div>
-
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
                 <div style="width:145px;font-size:13px;color:#333;font-weight:600;">Healthcare spending</div>
                 <div style="flex:1;background:#f1f5f9;border-radius:8px;height:9px;overflow:hidden;">
-                    <div style="height:100%;border-radius:8px;width:100%;background:#3b82f6;"></div>
-                </div>
+                    <div style="height:100%;border-radius:8px;width:100%;background:#3b82f6;"></div></div>
                 <div style="width:65px;font-size:13px;font-weight:700;text-align:right;color:#3b82f6;">+0.0042</div>
             </div>
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
                 <div style="width:145px;font-size:13px;color:#333;font-weight:600;">Water access</div>
                 <div style="flex:1;background:#f1f5f9;border-radius:8px;height:9px;overflow:hidden;">
-                    <div style="height:100%;border-radius:8px;width:70%;background:#10b981;"></div>
-                </div>
+                    <div style="height:100%;border-radius:8px;width:70%;background:#10b981;"></div></div>
                 <div style="width:65px;font-size:13px;font-weight:700;text-align:right;color:#10b981;">+0.135</div>
             </div>
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
                 <div style="width:145px;font-size:13px;color:#333;font-weight:600;">GDP per capita</div>
                 <div style="flex:1;background:#f1f5f9;border-radius:8px;height:9px;overflow:hidden;">
-                    <div style="height:100%;border-radius:8px;width:48%;background:#f59e0b;"></div>
-                </div>
+                    <div style="height:100%;border-radius:8px;width:48%;background:#f59e0b;"></div></div>
                 <div style="width:65px;font-size:13px;font-weight:700;text-align:right;color:#f59e0b;">+0.00008</div>
             </div>
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
-                <div style="width:145px;font-size:13px;color:#333;font-weight:600;">CO₂ emissions</div>
+                <div style="width:145px;font-size:13px;color:#333;font-weight:600;">CO&#x2082; emissions</div>
                 <div style="flex:1;background:#f1f5f9;border-radius:8px;height:9px;overflow:hidden;">
-                    <div style="height:100%;border-radius:8px;width:30%;background:#ef4444;"></div>
-                </div>
+                    <div style="height:100%;border-radius:8px;width:30%;background:#ef4444;"></div></div>
                 <div style="width:65px;font-size:13px;font-weight:700;text-align:right;color:#ef4444;">-0.089</div>
             </div>
-
             <div style="background:#f5f3ff;color:#581c87;border-left:4px solid #9b51e0;
                         border-radius:8px;padding:16px 18px;font-size:13.5px;line-height:1.7;
                         display:flex;gap:10px;">
-                <div>✦</div>
+                <div>&#10022;</div>
                 <div><strong>Key takeaway:</strong> The RLM confirms Healthcare Spending and Water
-                Access are the top positive drivers of life expectancy, while CO₂ Emissions is the
-                strongest negative driver.</div>
+                Access are the top positive drivers of life expectancy, while CO&#x2082; Emissions
+                is the strongest negative driver.</div>
             </div>
         </div>
         """, unsafe_allow_html=True)
 
 
 # ── SECTION 4: CONCLUSION ─────────────────────────────────────────────────────
+# FIX: split into multiple st.markdown() calls so Streamlit renders each block
+# correctly and never treats any paragraph as raw text.
 if show_all:
+    st.markdown('<div class="section-header">'
+                '<span style="color:#a78bfa;font-size:20px;">●</span>'
+                ' FINAL CONCLUSION</div>', unsafe_allow_html=True)
+
+    # ── opening box + title
     st.markdown("""
-    <div style="background:linear-gradient(135deg,#1a1528 0%,#2d1f4e 100%);border-radius:16px;
-                padding:36px;color:white;margin-top:48px;box-shadow:0 10px 30px rgba(0,0,0,0.15);">
-        <h3 style="margin-top:0;color:#a78bfa;font-weight:800;font-size:22px;">✦ Final Conclusion 🌍</h3>
+<div class="conclusion-box">
+    <h3 style="margin-top:0;color:#a78bfa;font-weight:800;font-size:22px;">&#10022; Final Conclusion &#127757;</h3>
+""", unsafe_allow_html=True)
 
-        <p style="color:#e2e8f0;font-size:15px;line-height:1.8;margin-bottom:16px;">
-            The Robust Regression (RLM) analysis confirms that <strong>Healthcare Spending</strong> is a
-            statistically significant positive driver of life expectancy (p &lt; 0.05), while
-            <strong>CO₂ Emissions</strong> acts as a highly significant negative driver (p &lt; 0.001).
-            This statistical confidence proves mathematically that while financial investments into health
-            infrastructure steadily add years to a population's lifespan, environmental degradation
-            actively and aggressively subtracts from it.
-        </p>
+    # ── paragraph 1
+    st.markdown("""
+    <p>
+        The Robust Regression (RLM) analysis confirms that <strong>Healthcare Spending</strong> is a
+        statistically significant positive driver of life expectancy (p &lt; 0.05), while
+        <strong>CO&#x2082; Emissions</strong> acts as a highly significant negative driver (p &lt; 0.001).
+        This statistical confidence proves mathematically that while financial investments into health
+        infrastructure steadily add years to a population&#x2019;s lifespan, environmental degradation
+        actively and aggressively subtracts from it.
+    </p>
+""", unsafe_allow_html=True)
 
-        <p style="color:#e2e8f0;font-size:15px;line-height:1.8;margin-bottom:16px;">
-            Furthermore, the coefficients for <strong>GDP per Capita</strong> and <strong>Water Access</strong>
-            serve as vital comparative controls. Because the United Kingdom and the United States are both
-            highly advanced nations with near-universal clean water access and massive economies, the
-            structural benefits of these factors are largely mediated jointly — forming the foundational
-            baseline of a long life, allowing us to isolate the dynamic fluctuations caused by healthcare
-            efficiency and carbon pollution.
-        </p>
+    # ── paragraph 2
+    st.markdown("""
+    <p>
+        Furthermore, the coefficients for <strong>GDP per Capita</strong> and <strong>Water Access</strong>
+        serve as vital comparative controls. Because the United Kingdom and the United States are both
+        highly advanced nations with near-universal clean water access and massive economies, the
+        structural benefits of these factors are largely mediated jointly &#8212; forming the foundational
+        baseline of a long life, allowing us to isolate the dynamic fluctuations caused by healthcare
+        efficiency and carbon pollution.
+    </p>
+""", unsafe_allow_html=True)
 
-        <p style="color:#e2e8f0;font-size:15px;line-height:1.8;margin-bottom:16px;">
-            Together, these four variables explain approximately <strong>94% of the variance</strong>
-            in life expectancy across the two nations from 2000 to 2024. An R² of 0.94 is exceptionally
-            high in public health data, underscoring the dominance of these specific socio-economic and
-            environmental pillars.
-        </p>
+    # ── paragraph 3
+    st.markdown("""
+    <p>
+        Together, these four variables explain approximately <strong>94% of the variance</strong>
+        in life expectancy across the two nations from 2000 to 2024. An R&#178; of 0.94 is exceptionally
+        high in public health data, underscoring the absolute dominance of these specific socio-economic
+        and environmental pillars.
+    </p>
+""", unsafe_allow_html=True)
 
-        <p style="color:#e2e8f0;font-size:15px;line-height:1.8;margin-bottom:24px;">
-            Ultimately, these findings directly support <strong>SDG 3: Good Health and Well-Being</strong>.
-            True public well-being requires a synergistic approach where aggressive economic investment in
-            healthcare is permanently paired with strict, sustainable environmental policy decisions.
-        </p>
+    # ── paragraph 4
+    st.markdown("""
+    <p>
+        Ultimately, these findings directly support the multidisciplinary objectives of
+        <strong>SDG 3: Good Health and Well-Being</strong>. The data demonstrates unequivocally
+        that human health cannot be managed in a medical vacuum; true public well-being requires a
+        synergistic approach where aggressive economic investment in healthcare is permanently paired
+        with strict, sustainable environmental policy decisions.
+    </p>
+""", unsafe_allow_html=True)
 
-        <div style="margin-top:24px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.1);">
-            <span style="background:#9b51e0;color:white;display:inline-block;padding:6px 16px;
-                  border-radius:20px;font-size:12px;font-weight:700;margin:6px 6px 0 0;">
-                  Healthcare spending ↑</span>
-            <span style="background:#f59e0b;color:white;display:inline-block;padding:6px 16px;
-                  border-radius:20px;font-size:12px;font-weight:700;margin:6px 6px 0 0;">
-                  GDP per capita ↑</span>
-            <span style="background:#10b981;color:white;display:inline-block;padding:6px 16px;
-                  border-radius:20px;font-size:12px;font-weight:700;margin:6px 6px 0 0;">
-                  Water access ↑</span>
-            <span style="background:#ef4444;color:white;display:inline-block;padding:6px 16px;
-                  border-radius:20px;font-size:12px;font-weight:700;margin:6px 6px 0 0;">
-                  CO₂ emissions ↓</span>
-            <span style="background:#e2e8f0;color:#1f2937;display:inline-block;padding:6px 16px;
-                  border-radius:20px;font-size:12px;font-weight:700;margin:6px 0 0 0;">
-                  R² = 0.94</span>
-        </div>
+    # ── tags row + closing box div
+    st.markdown("""
+    <div style="margin-top:24px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.1);">
+        <span class="tag" style="background:#9b51e0;">Healthcare spending &#8593;</span>
+        <span class="tag" style="background:#f59e0b;">GDP per capita &#8593;</span>
+        <span class="tag" style="background:#10b981;">Water access &#8593;</span>
+        <span class="tag" style="background:#ef4444;">CO&#x2082; emissions &#8595;</span>
+        <span class="tag" style="background:#e2e8f0;color:#1f2937;">R&#178; = 0.94</span>
     </div>
-    """, unsafe_allow_html=True)
+</div>
+""", unsafe_allow_html=True)
 
 
 # ── FOOTER ────────────────────────────────────────────────────────────────────
 st.markdown("""
 <div style="text-align:center;padding:40px 0 20px;font-size:12px;color:#94a3b8;">
-    SDG 3 Life Expectancy Dashboard &nbsp;·&nbsp; Juliana Paula T. Binas &nbsp;·&nbsp; BSIS 3A<br>
-    Data Sources: World Bank Open Data &nbsp;·&nbsp; Our World in Data &nbsp;·&nbsp; Period: 2000–2024
+    SDG 3 Life Expectancy Dashboard &nbsp;&#183;&nbsp; Juliana Paula T. Binas &nbsp;&#183;&nbsp; BSIS 3A<br>
+    Data Sources: World Bank Open Data &nbsp;&#183;&nbsp; Our World in Data &nbsp;&#183;&nbsp; Period: 2000&#8211;2024
 </div>
 """, unsafe_allow_html=True)
