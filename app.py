@@ -821,7 +821,11 @@ if show_all:
 """, unsafe_allow_html=True)
 
     st.markdown("""
-  <p>The Robust Regression (RLM) analysis confirms that <strong>Healthcare Spending</strong> is a
+  <p>
+  
+  
+  
+  The Robust Regression (RLM) analysis confirms that <strong>Healthcare Spending</strong> is a
   statistically significant positive driver of life expectancy (p &lt; 0.05), while
   <strong>CO&#x2082; Emissions</strong> acts as a highly significant negative driver (p &lt; 0.001).
   This proves mathematically that while financial investments into health infrastructure steadily
@@ -829,10 +833,7 @@ if show_all:
 """, unsafe_allow_html=True)
 
     st.markdown("""
-  <p>
-  
-  
-The coefficients for <strong>GDP per Capita</strong> and <strong>Water Access</strong> serve as
+  <p>The coefficients for <strong>GDP per Capita</strong> and <strong>Water Access</strong> serve as
   vital comparative controls. Because the United Kingdom and the United States are both highly
   advanced nations with near-universal clean water access and large economies, the structural
   benefits of these factors are largely mediated jointly &#8212; forming the foundational baseline
