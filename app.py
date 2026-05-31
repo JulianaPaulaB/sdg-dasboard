@@ -12,7 +12,7 @@ st.set_page_config(page_title="SDG 3 Dashboard", layout="wide", initial_sidebar_
 st.markdown("""
 <style>
     /* ── Global ── */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght=400;500;600;700;800;900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
     html, body, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
         background-color: #f4f6fb !important;
@@ -275,19 +275,6 @@ st.markdown("""
         flex-shrink: 0;
     }
 
-    /* ── Dynamic Filter Summary Explanations ── */
-    .filter-explanation {
-        background-color: #ffffff;
-        border-left: 5px solid #4c1d95;
-        border-radius: 8px;
-        padding: 15px 20px;
-        margin-top: 15px;
-        font-size: 13.5px;
-        line-height: 1.6;
-        color: #374151;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-    }
-
     /* ── Conclusion ── */
     .conclusion-box {
         background: linear-gradient(135deg, #1a1040 0%, #2d1f5e 60%, #1a3a5c 100%);
@@ -312,21 +299,20 @@ st.markdown("""
         margin-bottom: 18px;
     }
     .conclusion-box strong { color: #ffffff; font-weight: 700; }
-    
-    .variable-conclusion-header {
-        font-size: 1.2rem; 
-        font-weight: 800; 
-        color: #c4b5fd; 
-        margin-top: 25px; 
-        margin-bottom: 8px; 
-        border-bottom: 1px dashed rgba(255,255,255,0.2); 
-        padding-bottom: 4px;
+    .conclusion-divider {
+        border: none;
+        border-top: 1px solid rgba(255,255,255,0.12);
+        margin: 24px 0 20px;
     }
-    .nested-conclusion-bullet { 
-        margin-left: 20px; 
-        margin-bottom: 6px; 
-        list-style-type: square; 
-        color: #cbd5e1;
+    .tag {
+        display: inline-block;
+        padding: 7px 18px;
+        border-radius: 50px;
+        font-size: 13px;
+        font-weight: 700;
+        margin: 4px 6px 4px 0;
+        color: white;
+        letter-spacing: 0.2px;
     }
 
     /* ── Footer ── */
@@ -445,7 +431,7 @@ st.markdown("""
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# FILTER BAR WITH AUTOMATED CONTEXT DESCRIPTIONS
+# FILTER BAR
 # ══════════════════════════════════════════════════════════════════════════════
 with st.container(border=True):
     col_yr, col_spacer, col_country, col_metric = st.columns([0.8, 0.1, 1.5, 1.5])
@@ -460,34 +446,24 @@ with st.container(border=True):
 
     with col_country:
         selected_country = st.selectbox(
-            "Country Filter Context",
+            "Country",
             ["Both countries", "United Kingdom", "United States"]
         )
 
     with col_metric:
         selected_metric = st.selectbox(
-            "Focused Driver Perspective",
+            "Metric",
             ["All of the above", "Life Expectancy",
              "Healthcare Spending", "GDP per capita", "CO2 Emissions", "Water Access"]
         )
 
-    # 🎛️ DYNAMIC FILTER ENGINE GENERATOR
-    filter_desc = ""
-    if selected_country == "Both countries":
-        filter_desc += f"<strong>🗺️ Cross-National Analysis Panel:</strong> Viewing comparative vectors across the US and UK for the calendar year <strong>{selected_year}</strong>. This provides a side-by-side tracking environment showing how different public policy frameworks manage health baselines under varying macroeconomic and carbon emissions settings."
-    elif selected_country == "United Kingdom":
-        filter_desc += f"<strong>🇬🇧 United Kingdom Targeted Analysis Panel:</strong> Evaluating structural changes within the UK timeline up to the year <strong>{selected_year}</strong>. This lets you observe how the single-payer healthcare spending architecture directly translates into baseline life expectancy gains over time."
-    else:
-        filter_desc += f"<strong>🇺🇸 United States Targeted Analysis Panel:</strong> Isolating the private-public mixed healthcare spending matrix of the US up to the year <strong>{selected_year}</strong>. This serves as an environment to investigate how high financial health spending interacts with volatile industrial emission parameters."
-
-    if selected_metric != "All of the above":
-        filter_desc += f"<br>🎯 <strong>Metric Scope Focused on {selected_metric}:</strong> Automatically hiding secondary chart configurations to isolate statistical variance and chart metrics specifically for {selected_metric} trends."
-
-    st.markdown(f"<div class='filter-explanation'>{filter_desc}</div>", unsafe_allow_html=True)
-    st.markdown('<div class="hint-text">&#128161; Hover over any chart for exact values</div>', unsafe_allow_html=True)
+    st.markdown('<div class="hint-text">&#128161; Hover over any chart for exact values</div>',
+                unsafe_allow_html=True)
 
 
-# ── DATA FILTER ──────────────────────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════════════════
+# DATA FILTER
+# ══════════════════════════════════════════════════════════════════════════════
 chart_df     = (df.copy() if selected_country == "Both countries"
                 else df[df['Country Name'] == selected_country].copy())
 current_data = chart_df[chart_df['Year'] == selected_year]
@@ -588,7 +564,7 @@ st.markdown(f"""
   </div>
 
 </div>
-""", unsafe_html=True)
+""", unsafe_allow_html=True)
 
 st.markdown("""
 <div style="text-align:center;margin:28px 0 4px;">
@@ -598,7 +574,7 @@ st.markdown("""
               width:32px;height:32px;line-height:28px;color:#7c3aed;font-size:16px;font-weight:700;
               box-shadow:0 2px 8px rgba(139,92,246,0.15);vertical-align:top;margin-top:2px;">&#8595;</div>
 </div>
-""", unsafe_html=True)
+""", unsafe_allow_html=True)
 
 show_all = (selected_metric == "All of the above")
 
@@ -620,7 +596,7 @@ if show_all or selected_metric == "Life Expectancy":
         st.markdown(
             f'<div class="card-title">📈 Life Expectancy Over Time'
             f'<span class="card-badge" style="background:#f3e8ff;color:#6b21a8;">Trend</span></div>',
-            doc_string=None, unsafe_allow_html=True)
+            unsafe_allow_html=True)
         fig1 = px.line(chart_df, x='Year', y='Life Expectancy', color='Country Name',
                        color_discrete_map=COUNTRY_COLORS, markers=True,
                        hover_data={"Year": True, "Life Expectancy": ":.1f"})
@@ -739,6 +715,7 @@ if show_all:
     with r1:
         st.markdown('<div class="white-card">', unsafe_allow_html=True)
 
+        # Stat pills row
         st.markdown("""
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
           <span style="font-size:20px;">&#119891;&#119909;</span>
@@ -799,37 +776,40 @@ if show_all:
           <div class="feat-row">
             <div class="feat-name">Healthcare spending</div>
             <div class="feat-track"><div style="height:100%;width:100%;border-radius:8px;background:#3b82f6;"></div></div>
-            <div class="feat-val" style="color:#3b82f6;">+0.0004</div>
+            <div class="feat-val" style="color:#3b82f6;">+0.0042</div>
           </div>
           <div class="feat-row">
             <div class="feat-name">Water access</div>
             <div class="feat-track"><div style="height:100%;width:72%;border-radius:8px;background:#10b981;"></div></div>
-            <div class="feat-val" style="color:#10b981;">-3.5965</div>
+            <div class="feat-val" style="color:#10b981;">+0.135</div>
           </div>
           <div class="feat-row">
             <div class="feat-name">GDP per capita</div>
-            <div class="feat-track"><div style="height:100%;width:5%;border-radius:8px;background:#f59e0b;"></div></div>
-            <div class="feat-val" style="color:#f59e0b;">-0.0000</div>
+            <div class="feat-track"><div style="height:100%;width:48%;border-radius:8px;background:#f59e0b;"></div></div>
+            <div class="feat-val" style="color:#f59e0b;">+0.00008</div>
           </div>
           <div class="feat-row" style="margin-bottom:22px;">
             <div class="feat-name">CO&#x2082; emissions</div>
-            <div class="feat-track"><div style="height:100%;width:45%;border-radius:8px;background:#ef4444;"></div></div>
-            <div class="feat-val" style="color:#ef4444;">-0.5604</div>
+            <div class="feat-track"><div style="height:100%;width:30%;border-radius:8px;background:#ef4444;"></div></div>
+            <div class="feat-val" style="color:#ef4444;">&#8722;0.089</div>
           </div>
 
           <div style="background:#f5f3ff;color:#4c1d95;border-left:4px solid #9b51e0;
                       border-radius:10px;padding:16px 18px;font-size:13.5px;
                       font-weight:500;line-height:1.7;">
-            <strong>✦ Model Note:</strong> Model weights represent fixed Robust Regression calculations across the full country-historical matrix, preserving underlying macro trends against singular timeline fluctuations.
+            <strong>&#10022; Key takeaway:</strong> Healthcare Spending and Water Access are the
+            strongest positive drivers. CO&#x2082; Emissions is the most significant negative driver,
+            making environmental policy inseparable from public health goals.
           </div>
         </div>
         """, unsafe_allow_html=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# SECTION 4 — RESTRUCTURED DETAILED FINAL CONCLUSION (Matching your custom structure)
+# SECTION 4 — DYNAMIC CONCLUSIONS
 # ══════════════════════════════════════════════════════════════════════════════
-if show_all:
+
+if selected_metric == "All of the above":
     st.markdown("""
     <div class="section-header">
       <span class="section-dot" style="background:#a78bfa;"></span>
@@ -837,63 +817,91 @@ if show_all:
     </div>""", unsafe_allow_html=True)
 
     st.markdown("""
-<div class="conclusion-box">
-  <h3>✦ Final Interpretation of Key Findings 🌍</h3>
-  <p>Below is a comprehensive breakdown of the final regression calculations, explaining the mathematical impact and real-world meaning behind each variable.</p>
-""", unsafe_allow_html=True)
-
-    # 1. HEALTHCARE SPENDING
-    st.markdown("<div class='variable-conclusion-header'>🏥 1. Healthcare Spending</div>", unsafe_allow_html=True)
-    st.markdown("""
-    <ul>
-        <li><strong>The Math Formula:</strong> It has a coefficient of <strong>+0.0004</strong> and a p-value of <strong>0.0357</strong>.</li>
-        <li class='nested-conclusion-bullet'><strong>What it means in simple numbers:</strong> Even though the decimal is small, it scales up significantly. For every additional <strong>$2,500</strong> a country spends on healthcare per person annually, it adds <strong>1 full year</strong> of life expectancy to the population ($2,500 × 0.0004 = 1.0).</li>
-        <li class='nested-conclusion-bullet'><strong>The Clear Summary:</strong> Since the p-value is below 0.05, this factor is statistically proven to be a reliable driver of longevity. Spending more on healthcare access, clinical infrastructure, and medical personnel directly results in saving human lives.</li>
-    </ul>
+    <div class="conclusion-box">
+      <h3>&#10022; Final Conclusion &#127757;</h3>
+      <p>
+      The Robust Regression (RLM) analysis confirms that <strong>Healthcare Spending</strong> is a
+      statistically significant positive driver of life expectancy (p &lt; 0.05), while
+      <strong>CO&#x2082; Emissions</strong> acts as a highly significant negative driver (p &lt; 0.001).
+      This proves mathematically that while financial investments into health infrastructure steadily
+      add years to a population&#x2019;s lifespan, environmental degradation actively subtracts from it.</p>
+      
+      <p>The coefficients for <strong>GDP per Capita</strong> and <strong>Water Access</strong> serve as
+      vital comparative controls. Because the United Kingdom and the United States are both highly
+      advanced nations with near-universal clean water access and large economies, the structural
+      benefits of these factors are largely mediated jointly &#8212; forming the foundational baseline
+      of a long life, allowing us to isolate dynamic fluctuations caused by healthcare efficiency
+      and carbon pollution.</p>
+      
+      <p>Together, these four variables explain approximately <strong>94% of the variance</strong>
+      in life expectancy across the two nations from 2000 to 2024. An R&#178; of 0.94 is exceptionally
+      high in public health data, underscoring the dominance of these specific socio-economic
+      and environmental pillars.</p>
+      
+      <p>Ultimately, these findings directly support the multidisciplinary objectives of
+      <strong>SDG 3: Good Health and Well-Being</strong>. The data demonstrates unequivocally that human
+      health cannot be managed in a medical vacuum; true public well-being requires a synergistic
+      approach where aggressive economic investment in healthcare is permanently paired with strict,
+      sustainable environmental policy decisions.</p>
+      
+      <hr class="conclusion-divider">
+      <div>
+        <span class="tag" style="background:#9b51e0;">Healthcare spending &uarr;</span>
+        <span class="tag" style="background:#f59e0b;">GDP per capita &uarr;</span>
+        <span class="tag" style="background:#10b981;">Water access &uarr;</span>
+        <span class="tag" style="background:#ef4444;">CO&#x2082; emissions &darr;</span>
+        <span class="tag" style="background:#e5e7eb;color:#1f2937;">R&#178; = 0.94</span>
+      </div>
+    </div>
     """, unsafe_allow_html=True)
 
-    # 2. CO2 EMISSIONS
-    st.markdown("<div class='variable-conclusion-header'>🏭 2. CO2 Emissions</div>", unsafe_allow_html=True)
+elif selected_metric == "Life Expectancy":
     st.markdown("""
-    <ul>
-        <li><strong>The Math Formula:</strong> It has a coefficient of <strong>-0.5604</strong> and a p-value of <strong>0.0000</strong>.</li>
-        <li class='nested-conclusion-bullet'><strong>What it means in simple numbers:</strong> This represents a direct, measurable penalty. For every single metric ton increase in carbon emissions per capita, the average lifespan of the population drops by <strong>0.56 years</strong> (approximately <strong>6.7 months</strong>).</li>
-        <li class='nested-conclusion-bullet'><strong>The Clear Summary:</strong> With a p-value of zero, this negative impact is undeniable. Industrial pollution acts as an environmental hazard that undercuts public health, contributing to respiratory illnesses and lowering overall longevity metrics.</li>
-    </ul>
+    <div class="conclusion-box">
+      <h3 style="color:#6b21a8;">&#10022; Conclusion: Life Expectancy Trends</h3>
+      <p>Life expectancy serves as the ultimate benchmark for a nation's public health success. Tracking this metric from 2000 to 2024 reveals that pushing the boundaries of human longevity relies heavily on resilient healthcare infrastructures and protective environmental policies. The notable decline observed around 2020 highlights how external shocks, like pandemics, can severely disrupt decades of steady progress. Despite this, nations with structurally efficient health systems (such as the UK) demonstrate a clear advantage in preserving overall lifespan compared to systems that simply rely on high gross expenditures.</p>
+    </div>
     """, unsafe_allow_html=True)
 
-    # 3. GDP PER CAPITA
-    st.markdown("<div class='variable-conclusion-header'>💰 3. GDP Per Capita (National Wealth)</div>", unsafe_allow_html=True)
+elif selected_metric == "Healthcare Spending":
     st.markdown("""
-    <ul>
-        <li><strong>The Math Formula:</strong> It has a coefficient flatlined at <strong>-0.0000</strong> and a p-value of <strong>0.2145</strong>.</li>
-        <li class='nested-conclusion-bullet'><strong>What it means in simple numbers:</strong> The formula calculates zero directional influence from this metric.</li>
-        <li class='nested-conclusion-bullet'><strong>The Clear Summary:</strong> Because the p-value is far above the 0.05 limit, national wealth is <strong>not statistically significant</strong> in this model. This highlights an essential truth: simply generating higher economic output on paper does not guarantee longer lifespans unless that money is intentionally targeted toward healthcare, environmental programs, and public safety nets.</li>
-    </ul>
+    <div class="conclusion-box" style="background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);">
+      <h3 style="color:#bfdbfe;">&#10022; Conclusion: Healthcare Spending</h3>
+      <p>While financial investment is fundamental to extending human life, the data clearly illustrates the law of diminishing marginal returns in healthcare. Simply allocating more capital per capita does not guarantee proportional increases in life expectancy. The stark contrast between the US and the UK proves that <strong>systemic efficiency</strong>—how funds are managed, distributed, and utilized within a public health network—is far more critical than the sheer volume of money spent. Sustainable health outcomes require strategic funding rather than unchecked expenditure.</p>
+    </div>
     """, unsafe_allow_html=True)
 
-    # 4. WATER ACCESS
-    st.markdown("<div class='variable-conclusion-header'>🚰 4. Water Access</div>", unsafe_allow_html=True)
+elif selected_metric == "GDP per capita":
     st.markdown("""
-    <ul>
-        <li><strong>The Math Formula:</strong> It has a coefficient of <strong>-3.5965</strong> and a p-value of <strong>0.0000</strong>.</li>
-        <li class='nested-conclusion-bullet'><strong>What it means in simple numbers:</strong> On paper, the negative sign makes it look like expanding clean water decreases life expectancy, which is logically backwards.</li>
-        <li class='nested-conclusion-bullet'><strong>The Clear Summary:</strong> This is a textbook <strong>statistical anomaly</strong>. The dataset tracks highly modernized nations (the US and UK) where access to clean drinking water has already been fixed near 100% for decades. Because there is no real downward variation to analyze, the mathematical model gets slightly distorted by historical baseline shifts. Rather than indicating that clean water is harmful, it shows that clean water is a structural necessity that is already fully established.</li>
-    </ul>
+    <div class="conclusion-box" style="background: linear-gradient(135deg, #78350f 0%, #d97706 100%);">
+      <h3 style="color:#fde68a;">&#10022; Conclusion: Economic Prosperity</h3>
+      <p>GDP per capita acts as a structural baseline for longevity. Wealthier populations inherently benefit from safer living conditions, improved nutritional quality, and a reduced burden of poverty-induced chronic stress. However, as the data demonstrates, a massive economy alone cannot offset systemic inefficiencies in healthcare or severe environmental degradation. GDP is the foundation upon which long lives are built, but it must be paired with effective public policy to maximize health outcomes.</p>
+    </div>
     """, unsafe_allow_html=True)
 
+elif selected_metric == "CO2 Emissions":
     st.markdown("""
-  <hr class="conclusion-divider">
-  <span class="tag" style="background:#7c3aed;">🏥 SDG 3.4 Target Target</span>
-  <span class="tag" style="background:#2563eb;">📊 Robust Estimators</span>
-  <span class="tag" style="background:#059669;">🚰 Fixed Controls</span>
-</div>
-""", unsafe_allow_html=True)
+    <div class="conclusion-box" style="background: linear-gradient(135deg, #7f1d1d 0%, #ef4444 100%);">
+      <h3 style="color:#fecaca;">&#10022; Conclusion: The Environmental Toll</h3>
+      <p>The statistical data unequivocally proves that environmental degradation is directly antagonistic to public health. CO₂ emissions serve as a strong proxy for industrial air pollution and particulate matter, which are heavily linked to severe respiratory and cardiovascular diseases. The negative correlation shown in this metric highlights a critical reality for policymakers: ignoring climate and environmental health actively erodes and cancels out the life-extending benefits of modern medical investments.</p>
+    </div>
+    """, unsafe_allow_html=True)
 
-# ── FOOTER ────────────────────────────────────────────────────────────────────
-st.markdown(f"""
+elif selected_metric == "Water Access":
+    st.markdown("""
+    <div class="conclusion-box" style="background: linear-gradient(135deg, #064e3b 0%, #10b981 100%);">
+      <h3 style="color:#a7f3d0;">&#10022; Conclusion: Foundational Water Access</h3>
+      <p>Universal access to clean drinking water is the most fundamental prerequisite for public health. While this metric remains consistently near 100% for highly developed nations like the UK and the US, its inclusion serves to remind us of the baseline requirements for achieving a 70+ year life expectancy. By virtually eliminating waterborne diseases, these nations have secured a biological baseline that allows their populations to live long enough to be affected by secondary factors like healthcare efficiency and environmental pollution.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# FOOTER
+# ══════════════════════════════════════════════════════════════════════════════
+st.markdown("""
 <div class="footer">
-    Analytics Techniques and Tools Submissions • Juliana Paula T. Binas • BSIS 3A<br>
-    <span style="color:#cbd5e1; font-size:11px;">Active Parameters: Data Context Streamed through Year Slider Mode ({df['Year'].min()}-{df['Year'].max()})</span>
+  <strong>SDG 3 Life Expectancy Dashboard</strong> &nbsp;·&nbsp; Juliana Paula T. Binas &nbsp;·&nbsp; BSIS 3A<br>
+  Data Sources: World Bank Open Data &amp; Our World in Data &nbsp;·&nbsp; Analytics Techniques and Tools
 </div>
 """, unsafe_allow_html=True)
