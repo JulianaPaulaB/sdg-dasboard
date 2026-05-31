@@ -96,48 +96,29 @@ st.markdown("""
     .kpi-delta-down { font-size: 12px; font-weight: 600; color: #e11d48; }
     .kpi-delta-up { font-size: 12px; font-weight: 600; color: #059669; }
     .kpi-neutral { font-size: 12px; font-weight: 600; color: #64748b; }
-
-    /* Insight Boxes */
-    .insight-box {
-        border-radius: 8px;
-        padding: 18px 20px;
-        font-size: 14.5px;
-        line-height: 1.7;
-        margin-top: 16px;
-        display: flex;
-        gap: 12px;
-    }
-    .insight-purple { background-color: #f5f3ff; color: #581c87; border-left: 4px solid #9b51e0; }
-    
-    /* Explainer Text */
-    .explainer-text {
-        font-size: 14.5px;
-        color: #334155;
-        background: #f8fafc;
-        padding: 20px;
-        border-radius: 8px;
-        margin-top: 16px;
-        border: 1px solid #e2e8f0;
-        line-height: 1.7;
-    }
 </style>
 """, unsafe_allow_html=True)
 
-# ── DATA LOADING ─────────────────────────────────────────────────────────────
+# ── DATA LOADING & MODELING (CRASH-PROOF) ────────────────────────────────────
 @st.cache_data
 def load_data():
     try:
         df = pd.read_csv("merged_sdg_data.csv")
     except:
-        # Fallback dummy data if CSV is not found
         dates = list(range(2000, 2025))
         df_uk = pd.DataFrame({'Year': dates, 'Country Name': 'United Kingdom', 'Life Expectancy': np.linspace(77.7, 81.3, 25), 'Healthcare Spending': np.linspace(2000, 5000, 25), 'GDP per capita': np.linspace(26000, 48000, 25), 'Water Access': 99.9, 'CO2 Emissions': np.linspace(9.6, 5.0, 25)})
         df_us = pd.DataFrame({'Year': dates, 'Country Name': 'United States', 'Life Expectancy': np.linspace(76.7, 78.5, 25), 'Healthcare Spending': np.linspace(4000, 12000, 25), 'GDP per capita': np.linspace(36000, 70000, 25), 'Water Access': 99.0, 'CO2 Emissions': np.linspace(20.0, 14.0, 25)})
         df_uk.loc[20:21, 'Life Expectancy'] -= 1.0 
         df_us.loc[20:21, 'Life Expectancy'] -= 1.5
         df = pd.concat([df_uk, df_us])
+    
+    # Drop completely empty rows to prevent statsmodels from crashing
+    df = df.dropna(subset=["Healthcare Spending", "Water Access", "GDP per capita", "CO2 Emissions", "Life Expectancy"]).reset_index(drop=True)
+    
+    # Calculate Healthcare Efficiency
+    df['Efficiency'] = df['Life Expectancy'] / (df['Healthcare Spending'] / 1000)
 
-    # Model Calculation for Predictions
+    # Robust Regression Model
     X = df[["Healthcare Spending", "Water Access", "GDP per capita", "CO2 Emissions"]]
     y = df["Life Expectancy"]
     X = sm.add_constant(X)
@@ -173,7 +154,7 @@ st.markdown("""
 # ── ON-PAGE INTERACTIVE FILTER ───────────────────────────────────────────────
 with st.container(border=True):
     st.markdown("<div style='font-size: 12px; font-weight: 700; color: #666; margin-bottom: -15px;'><span style='color:#9b51e0;'>⚲</span> YEAR</div>", unsafe_allow_html=True)
-    selected_year = st.slider("", min_value=int(df['Year'].min()), max_value=int(df['Year'].max()), value=2021, label_visibility="collapsed")
+    selected_year = st.slider("", min_value=int(df['Year'].min()), max_value=int(df['Year'].max()), value=int(df['Year'].max()), label_visibility="collapsed")
     
     col_f1, col_f2, col_f3 = st.columns([1, 2, 2])
     with col_f1:
@@ -185,11 +166,7 @@ with st.container(border=True):
     st.markdown('<div style="text-align: right; font-size: 12px; color: #aaa; font-style: italic;">Hover over charts for exact details</div>', unsafe_allow_html=True)
 
 # ── DATA FILTERING ENGINE ────────────────────────────────────────────────────
-if selected_country == "Both countries":
-    chart_df = df.copy()
-else:
-    chart_df = df[df['Country Name'] == selected_country].copy()
-
+chart_df = df.copy() if selected_country == "Both countries" else df[df['Country Name'] == selected_country].copy()
 current_data = chart_df[chart_df['Year'] == selected_year]
 prev_data = chart_df[chart_df['Year'] == (selected_year - 1)]
 
@@ -197,13 +174,8 @@ prev_data = chart_df[chart_df['Year'] == (selected_year - 1)]
 def get_mean(dataframe, col):
     if dataframe is None or dataframe.empty or col not in dataframe.columns:
         return 0.0
-    val = dataframe[col]
-    if isinstance(val, pd.DataFrame):
-        val = val.iloc[:, 0]
-    mean_val = val.mean()
-    if pd.isna(mean_val):
-        return 0.0
-    return float(mean_val)
+    val = dataframe[col].mean()
+    return float(val) if not pd.isna(val) else 0.0
 
 val_life = get_mean(current_data, 'Life Expectancy')
 val_health = get_mean(current_data, 'Healthcare Spending')
@@ -224,7 +196,6 @@ def format_delta(delta, format_type="standard"):
         return "<span class='kpi-neutral'>No change</span>"
     
     prefix = "▲" if delta > 0 else "▼"
-    
     if format_type == "co2":
         color_class = "kpi-delta-down" if delta > 0 else "kpi-delta-up"
         val_str = f"{abs(delta):.1f}"
@@ -237,7 +208,7 @@ def format_delta(delta, format_type="standard"):
         
     return f"<span class='{color_class}'>{prefix} {val_str} vs prior year</span>"
 
-# KPI Cards always show to give context
+# KPI Cards
 st.markdown(f"""
 <div class="kpi-container">
     <div class="kpi-card" style="border-top: 4px solid {C_UK};">
@@ -273,6 +244,7 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
+# Centered down arrow
 st.markdown("""
 <div style="text-align:center; margin-top: 16px; margin-bottom: 32px;">
     <button style="background: white; border: 1px solid #ddd; border-radius: 50%; width: 40px; height: 40px; color: #666; cursor: pointer; font-size: 20px; box-shadow: 0px 4px 6px rgba(0,0,0,0.05);">↓</button>
@@ -299,66 +271,62 @@ if show_all or selected_metric == "Life Expectancy":
         fig1.add_vline(x=selected_year, line_width=2, line_dash="dash", line_color="gray", opacity=0.5)
         fig1.update_layout(margin=dict(l=0, r=0, t=20, b=0), plot_bgcolor='rgba(0,0,0,0)', yaxis=dict(showgrid=True, gridcolor='#f1f1f1'))
         st.plotly_chart(fig1, use_container_width=True)
-        
-        st.markdown("""
-        <div class="insight-box insight-purple">
-            <div>✦</div>
-            <div>Both countries dipped in 2020-2021 due to COVID-19. The UK recovered faster and consistently leads the USA in life expectancy despite the USA spending nearly 2x more on healthcare. This longitudinal timeline captures a quarter-century of demographic history, showcasing the steady, upward climb prior to the pandemic.</div>
-        </div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
     with c2:
         st.markdown('<div class="white-card">', unsafe_allow_html=True)
         st.markdown(f'<strong style="font-size: 16px;">📊 Country comparison</strong> <span style="background:#fce7f3; color:#9f1239; padding:2px 8px; border-radius:10px; font-size:11px;">{selected_year}</span>', unsafe_allow_html=True)
         
         fig2 = px.bar(current_data, x='Country Name', y='Life Expectancy', color='Country Name',
-                      color_discrete_map=COUNTRY_COLORS,
-                      hover_data={"Life Expectancy": ":.1f"})
+                      color_discrete_map=COUNTRY_COLORS, hover_data={"Life Expectancy": ":.1f"})
         fig2.update_layout(showlegend=False, margin=dict(l=0, r=0, t=20, b=0), plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(fig2, use_container_width=True)
-        
-        st.markdown("""
-        <div class="insight-box insight-purple" style="background:#fdf2f8; color:#9d174d; border-left: 4px solid #f472b6;">
-            <div>✦</div>
-            <div>The UK consistently outperforms the USA — spending efficiency, not just total spending, drives health outcomes.</div>
-        </div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
 
 # ── SECTION 2: KEY DRIVERS ───────────────────────────────────────────────────
-# We use st.columns(4) to maintain the exact sizes even if only 1 metric is selected
 if show_all or selected_metric in ["Healthcare Spending", "GDP per capita", "Water Access", "CO2 Emissions"]:
     st.markdown('<div class="section-header"><span style="color:#0ea5e9; font-size: 22px;">●</span> KEY DRIVERS — WHAT AFFECTS LIFE EXPECTANCY?</div>', unsafe_allow_html=True)
-    d1, d2, d3, d4 = st.columns(4)
+    
+    # We dynamically calculate columns so they stretch nicely
+    charts_to_show = []
+    if show_all or selected_metric == "Healthcare Spending": charts_to_show.append("health")
+    if show_all or selected_metric == "GDP per capita": charts_to_show.append("gdp")
+    if show_all or selected_metric == "Water Access": charts_to_show.append("water")
+    if show_all or selected_metric == "CO2 Emissions": charts_to_show.append("co2")
 
-    if show_all or selected_metric == "Healthcare Spending":
-        with d1:
+    cols = st.columns(len(charts_to_show))
+    col_idx = 0
+    
+    if "health" in charts_to_show:
+        with cols[col_idx]:
             st.markdown('<div class="white-card"><h4 style="color:#3b82f6; margin-top:0;">🏥 Healthcare spending</h4>', unsafe_allow_html=True)
-            fig_h = px.scatter(chart_df, x='Healthcare Spending', y='Life Expectancy', color='Country Name', color_discrete_map=COUNTRY_COLORS, hover_data={"Healthcare Spending": ":.0f", "Life Expectancy": ":.1f"})
+            fig_h = px.scatter(chart_df, x='Healthcare Spending', y='Life Expectancy', color='Country Name', color_discrete_map=COUNTRY_COLORS)
             fig_h.update_layout(margin=dict(l=0, r=0, t=10, b=0), plot_bgcolor='rgba(0,0,0,0)', showlegend=False)
             st.plotly_chart(fig_h, use_container_width=True)
-            st.markdown("""<div style="background-color: #f0f9ff; color: #0c4a6e; border-left: 4px solid #00b4d8; padding: 12px; border-radius: 8px; font-size: 13.5px; margin-top: 12px; line-height: 1.6;"><strong>Positive ↑</strong> — More investment generally leads to longer lives. However, the plateau effect in the USA suggests diminishing marginal returns.</div></div>""", unsafe_allow_html=True)
+            st.markdown("""<div style="background-color: #f0f9ff; color: #0c4a6e; border-left: 4px solid #00b4d8; padding: 12px; border-radius: 8px; font-size: 13.5px; margin-top: 12px; line-height: 1.6;"><strong>Positive ↑</strong> — More investment generally leads to longer lives. The plateau effect in the USA suggests diminishing marginal returns.</div></div>""", unsafe_allow_html=True)
+        col_idx += 1
 
-    if show_all or selected_metric == "GDP per capita":
-        with d2:
+    if "gdp" in charts_to_show:
+        with cols[col_idx]:
             st.markdown('<div class="white-card"><h4 style="color:#f59e0b; margin-top:0;">💰 GDP per capita</h4>', unsafe_allow_html=True)
             fig_g = px.scatter(chart_df, x='GDP per capita', y='Life Expectancy', color='Country Name', color_discrete_map=COUNTRY_COLORS)
             fig_g.update_layout(margin=dict(l=0, r=0, t=10, b=0), plot_bgcolor='rgba(0,0,0,0)', showlegend=False)
             st.plotly_chart(fig_g, use_container_width=True)
             st.markdown("""<div style="background-color: #fffbeb; color: #92400e; border-left: 4px solid #f59e0b; padding: 12px; border-radius: 8px; font-size: 13.5px; margin-top: 12px; line-height: 1.6;"><strong>Positive ↑</strong> — Wealthier nations have higher living standards, allowing citizens to afford better nutrition and safer housing.</div></div>""", unsafe_allow_html=True)
+        col_idx += 1
 
-    if show_all or selected_metric == "Water Access":
-        with d3:
+    if "water" in charts_to_show:
+        with cols[col_idx]:
             st.markdown('<div class="white-card"><h4 style="color:#10b981; margin-top:0;">💧 Water access</h4>', unsafe_allow_html=True)
             fig_w = px.scatter(chart_df, x='Year', y='Water Access', color='Country Name', color_discrete_map=COUNTRY_COLORS)
             fig_w.update_layout(margin=dict(l=0, r=0, t=10, b=0), plot_bgcolor='rgba(0,0,0,0)', showlegend=False)
             st.plotly_chart(fig_w, use_container_width=True)
             st.markdown("""<div style="background-color: #ecfdf5; color: #065f46; border-left: 4px solid #10b981; padding: 12px; border-radius: 8px; font-size: 13.5px; margin-top: 12px; line-height: 1.6;"><strong>Positive ↑</strong> — Universal access to clean water directly cuts down the burden of preventable diseases. It is the absolute prerequisite.</div></div>""", unsafe_allow_html=True)
+        col_idx += 1
 
-    if show_all or selected_metric == "CO2 Emissions":
-        with d4:
+    if "co2" in charts_to_show:
+        with cols[col_idx]:
             st.markdown('<div class="white-card"><h4 style="color:#ef4444; margin-top:0;">☁️ CO₂ emissions</h4>', unsafe_allow_html=True)
             fig_c = px.scatter(chart_df, x='Year', y='CO2 Emissions', color='Country Name', color_discrete_map=COUNTRY_COLORS)
             fig_c.update_layout(margin=dict(l=0, r=0, t=10, b=0), plot_bgcolor='rgba(0,0,0,0)', showlegend=False)
@@ -366,7 +334,7 @@ if show_all or selected_metric in ["Healthcare Spending", "GDP per capita", "Wat
             st.markdown("""<div style="background-color: #fef2f2; color: #991b1b; border-left: 4px solid #ef4444; padding: 12px; border-radius: 8px; font-size: 13.5px; margin-top: 12px; line-height: 1.6;"><strong>Negative ↓</strong> — High carbon emissions indicate severe air pollution. Long-term exposure triggers respiratory diseases.</div></div>""", unsafe_allow_html=True)
 
 
-# ── SECTION 3: REGRESSION MODEL & FINAL INSIGHTS ─────────────────────────────
+# ── SECTION 3: REGRESSION MODEL ──────────────────────────────────────────────
 if show_all:
     st.markdown('<div class="section-header"><span style="color:#e11d48; font-size: 22px;">●</span> REGRESSION MODEL — PERFORMANCE & PREDICTIONS</div>', unsafe_allow_html=True)
 
@@ -396,7 +364,6 @@ if show_all:
         """, unsafe_allow_html=True)
         
         fig_pred = go.Figure()
-        # Plot lines dynamically based on selected country to prevent ghost lines
         for country in chart_df['Country Name'].unique():
             c_df = chart_df[chart_df['Country Name'] == country]
             color = C_UK if country == 'United Kingdom' else C_US
@@ -439,42 +406,14 @@ if show_all:
             
             <div style="background-color: #f5f3ff; color: #581c87; border-left: 4px solid #9b51e0; border-radius: 8px; padding: 18px 20px; font-size: 14.5px; line-height: 1.7; margin-top: 24px; display: flex; gap: 12px;">
                 <div>✦</div>
-                <div><strong>Explanation:</strong> The model looks at all data together. To ensure our conclusions are not visual illusions, we used a Robust Linear Model (RLM). It confirms that Healthcare spending and water access are the top positive drivers. CO₂ is the strongest negative driver.</div>
+                <div><strong>Explanation:</strong> To ensure our conclusions are mathematically sound, we used a Robust Linear Model (RLM). It confirms that Healthcare spending and water access are the top positive drivers. CO₂ is the strongest negative driver.</div>
             </div>
         </div>
         """, unsafe_allow_html=True)
 
 
-    # ── SECTION 4: INSIGHTS & RECOMMENDATIONS ────────────────────────────────
-    st.markdown('<div class="section-header"><span class="dot" style="color:#10b981;">●</span> INSIGHTS & RECOMMENDATIONS</div>', unsafe_allow_html=True)
-
-    i1, i2 = st.columns(2)
-
-    with i1:
-        st.markdown("""
-        <div class="white-card" style="background-color: #f0f9ff; border: 1px solid #bae6fd; padding: 24px; margin-bottom: 16px;">
-            <h4 style="color: #0c4a6e; margin-top: 0; font-size: 16px; display: flex; align-items: center; gap: 8px;">🏥 Increase healthcare investment</h4>
-            <p style="color: #0c4a6e; font-size: 14.5px; margin: 0; line-height: 1.7; opacity: 0.9;">Every $1,000 increase in per-capita healthcare spending is linked to measurably longer life expectancy. Efficient spending matters more than raw totals — the UK proves this by achieving superior outcomes with fewer resources.</p>
-        </div>
-        <div class="white-card" style="background-color: #ecfdf5; border: 1px solid #a7f3d0; padding: 24px;">
-            <h4 style="color: #064e3b; margin-top: 0; font-size: 16px; display: flex; align-items: center; gap: 8px;">💧 Ensure universal water access</h4>
-            <p style="color: #064e3b; font-size: 14.5px; margin: 0; line-height: 1.7; opacity: 0.9;">Expanding clean water infrastructure reduces preventable waterborne diseases that disproportionately shorten life expectancy in vulnerable populations. Maintaining this 100% baseline is an absolute prerequisite.</p>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with i2:
-        st.markdown("""
-        <div class="white-card" style="background-color: #fffbeb; border: 1px solid #fde68a; padding: 24px; margin-bottom: 16px;">
-            <h4 style="color: #78350f; margin-top: 0; font-size: 16px; display: flex; align-items: center; gap: 8px;">💰 Promote economic growth</h4>
-            <p style="color: #78350f; font-size: 14.5px; margin: 0; line-height: 1.7; opacity: 0.9;">Policies that grow GDP per capita — through education, trade, and infrastructure — lift living standards and indirectly extend lives via better nutrition and healthcare access. A strong economy provides the essential baseline.</p>
-        </div>
-        <div class="white-card" style="background-color: #fef2f2; border: 1px solid #fecaca; padding: 24px;">
-            <h4 style="color: #7f1d1d; margin-top: 0; font-size: 16px; display: flex; align-items: center; gap: 8px;">☁️ Reduce carbon emissions</h4>
-            <p style="color: #7f1d1d; font-size: 14.5px; margin: 0; line-height: 1.7; opacity: 0.9;">Transitioning to cleaner energy and enforcing stricter emission standards directly reduces pollution-linked disease burden — confirmed significant by the regression analysis. Air toxicity aggressively counteracts the benefits of medical spending.</p>
-        </div>
-        """, unsafe_allow_html=True)
-
-    # ── CONCLUSION BOX ───────────────────────────────────────────────────────
+# ── SECTION 4: CONCLUSION BOX ────────────────────────────────────────────────
+if show_all:
     st.markdown("""
     <div style="background-color: #1a1528; border-radius: 12px; padding: 32px; color: white; margin-top: 48px; box-shadow: 0px 10px 25px rgba(0,0,0,0.15);">
         <h3 style="margin-top: 0; display: flex; align-items: center; gap: 8px; color: #a78bfa; font-weight: 800; font-size: 22px;">✦ Final Conclusion 🌍</h3>
@@ -505,9 +444,10 @@ if show_all:
     </div>
     """, unsafe_allow_html=True)
 
-# Centered down arrow for footer
-st.markdown("""
-<div style="text-align:center; margin-top: 24px; margin-bottom: 16px;">
-    <button style="background: white; border: 1px solid #ddd; border-radius: 50%; width: 40px; height: 40px; color: #666; cursor: pointer; font-size: 20px; box-shadow: 0px 4px 6px rgba(0,0,0,0.05);">↓</button>
+# ── Footer ───────────────────────────────────────────────────────────────────
+st.markdown(f"""
+<div style="text-align:center;padding:32px 0 16px;font-size:12px;color:#6b7280">
+    SDG 3 Life Expectancy Dashboard &nbsp;·&nbsp; Juliana Paula T. Binas &nbsp;·&nbsp; BSIS 3A<br>
+    Data Sources: World Bank Open Data · Our World in Data &nbsp;·&nbsp; Period: 2000–2024
 </div>
 """, unsafe_allow_html=True)
