@@ -5,316 +5,214 @@ import plotly.express as px
 import plotly.graph_objects as go
 import statsmodels.api as sm
 
-# ── PAGE CONFIG ──────────────────────────────────────────────────────────────
-st.set_page_config(page_title="SDG 3 Dashboard", layout="wide", initial_sidebar_state="collapsed")
+# 1. Page Configuration for Full Screen Responsiveness
+st.set_page_config(
+    page_title="SDG 3 Dashboard: Life Expectancy Drivers",
+    page_icon="🏥",
+    layout="wide",  # Ensures elements scale dynamically across monitor sizes
+    initial_sidebar_state="expanded"
+)
 
-# ── CUSTOM CSS ───────────────────────────────────────────────────────────────
+# Custom Styling to create a beautiful dashboard look
 st.markdown("""
-<style>
-    /* Main Background & Fonts */
-    [data-testid="stAppViewContainer"] {
-        background-color: #f8f9fa;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-    
-    /* Hide default header/footer */
-    header {visibility: hidden;}
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-
-    /* Top Banner */
-    .top-banner {
-        background-color: #1a1528;
+    <style>
+    .main { background-color: #fcfcfc; }
+    .metric-card {
+        background-color: #ffffff;
+        padding: 22px;
         border-radius: 12px;
-        padding: 24px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        color: white;
-        margin-bottom: 24px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+        border: 1px solid #eef2f6;
+        margin-bottom: 15px;
     }
-    .badge-purple { background-color: #ebdcf9; color: #6b21a8; padding: 6px 16px; border-radius: 20px; font-size: 14px; font-weight: 600;}
-    .badge-light { background-color: #f3e8ff; color: #4c1d95; padding: 6px 16px; border-radius: 20px; font-size: 14px; font-weight: 600;}
-    .badge-pink { background-color: #fce7f3; color: #9f1239; padding: 6px 16px; border-radius: 20px; font-size: 14px; font-weight: 600;}
-
-    /* Section Headers */
-    .section-header {
-        font-size: 16px;
-        font-weight: 800;
-        color: #1e1e1e;
-        text-transform: uppercase;
-        margin-top: 40px;
-        margin-bottom: 16px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-    .dot { font-size: 20px; }
-
-    /* Cards */
-    .white-card {
-        background-color: white;
-        border-radius: 12px;
+    .explanation-box {
+        background-color: #f0f4f8;
         padding: 20px;
-        box-shadow: 0px 4px 12px rgba(0,0,0,0.03);
-        height: 100%;
-        border: 1px solid #f1f1f1;
-    }
-    
-    /* KPI Cards */
-    .kpi-container { display: flex; gap: 16px; margin-top: 16px; flex-wrap: wrap; }
-    .kpi-card {
-        background: white;
-        border-radius: 12px;
-        padding: 16px;
-        flex: 1;
-        min-width: 150px;
-        box-shadow: 0px 4px 12px rgba(0,0,0,0.03);
-        border: 1px solid #f1f1f1;
-    }
-    .kpi-title { font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; margin-top: 8px; }
-    .kpi-value { font-size: 24px; font-weight: 800; color: #111; margin: 4px 0; }
-    .kpi-delta-down { font-size: 12px; font-weight: 600; color: #e11d48; }
-    .kpi-delta-up { font-size: 12px; font-weight: 600; color: #059669; }
-
-    /* Insight Boxes */
-    .insight-box {
-        border-radius: 8px;
-        padding: 14px 16px;
-        font-size: 14px;
+        border-radius: 10px;
+        border-left: 6px solid #1a365d;
+        margin-top: 15px;
+        margin-bottom: 25px;
         line-height: 1.6;
-        margin-top: 12px;
-        display: flex;
-        gap: 12px;
     }
-    .insight-purple { background-color: #f5f3ff; color: #581c87; border-left: 4px solid #9b51e0; }
-    .insight-blue { background-color: #f0f9ff; color: #0c4a6e; border-left: 4px solid #00b4d8; }
-    .insight-orange { background-color: #fffbeb; color: #92400e; border-left: 4px solid #f59e0b; }
-    .insight-green { background-color: #ecfdf5; color: #065f46; border-left: 4px solid #10b981; }
-    .insight-red { background-color: #fef2f2; color: #991b1b; border-left: 4px solid #ef4444; }
+    .badge-positive { background-color: #d4edda; color: #155724; padding: 4px 8px; border-radius: 4px; font-weight: bold; }
+    .badge-negative { background-color: #f8d7da; color: #721c24; padding: 4px 8px; border-radius: 4px; font-weight: bold; }
+    .badge-neutral { background-color: #e2e3e5; color: #383d41; padding: 4px 8px; border-radius: 4px; font-weight: bold; }
+    </style>
+""", unsafe_html=True)
 
-    /* Simple Explainer Text */
-    .explainer-text {
-        font-size: 14px;
-        color: #4b5563;
-        background: #f9fafb;
-        padding: 16px;
-        border-radius: 8px;
-        margin-bottom: 16px;
-        border: 1px dashed #cbd5e1;
-    }
-
-    /* Conclusion Box */
-    .conclusion-box {
-        background-color: #1a1528;
-        border-radius: 12px;
-        padding: 24px;
-        color: white;
-        margin-top: 32px;
-    }
-</style>
-""", unsafe_allow_html=True)
-
-# ── DATA LOADING ─────────────────────────────────────────────────────────────
+# 2. Data Cache Management
 @st.cache_data
-def load_data():
-    try:
-        df = pd.read_csv("merged_sdg_data.csv")
-    except:
-        dates = list(range(2000, 2025))
-        df_uk = pd.DataFrame({'Year': dates, 'Country Name': 'United Kingdom', 'Life Expectancy': np.linspace(77.7, 81.3, 25), 'Healthcare Spending': np.linspace(2000, 5000, 25), 'GDP per capita': np.linspace(26000, 48000, 25), 'Water Access': 99.9, 'CO2 Emissions': np.linspace(9.6, 5.0, 25)})
-        df_us = pd.DataFrame({'Year': dates, 'Country Name': 'United States', 'Life Expectancy': np.linspace(76.7, 78.5, 25), 'Healthcare Spending': np.linspace(4000, 12000, 25), 'GDP per capita': np.linspace(36000, 70000, 25), 'Water Access': 99.0, 'CO2 Emissions': np.linspace(20.0, 14.0, 25)})
-        df_uk.loc[20:21, 'Life Expectancy'] -= 1.0 
-        df_us.loc[20:21, 'Life Expectancy'] -= 1.5
-        df = pd.concat([df_uk, df_us])
-    
-    # Model Calculation for Predictions
-    X = df[["Healthcare Spending", "Water Access", "GDP per capita", "CO2 Emissions"]]
-    y = df["Life Expectancy"]
-    X = sm.add_constant(X)
-    rlm_model = sm.RLM(y, X, M=sm.robust.norms.HuberT()).fit()
-    df['Predicted'] = rlm_model.fittedvalues
-    return df
+def load_and_clean_data():
+    df = pd.read_csv('merged_sdg_data.csv')
+    df_clean = df.dropna().drop_duplicates()
+    df_clean.columns = ['Country', 'Code', 'Year', 'Water_Access', 'GDP_per_capita',
+                         'Healthcare_Spending', 'Life_Expectancy', 'CO2_Emissions']
+    return df_clean
 
-df = load_data()
+try:
+    df_clean = load_and_clean_data()
+except Exception as e:
+    st.error("Data error: Ensure 'merged_sdg_data.csv' is saved in the same directory as this code.")
+    st.stop()
 
-# ── COLORS ───────────────────────────────────────────────────────────────────
-C_UK = "#9b51e0"  
-C_US = "#00b4d8"  
-C_ORANGE = "#f59e0b"
-C_RED = "#ef4444"
-C_GREEN = "#10b981"
+# 3. Sidebar Filtering Systems
+st.sidebar.markdown("## ⚙️ Filter Controls")
+st.sidebar.write("Adjust the sliders and selections below to see how the dashboard updates instantly.")
 
-# ── HEADER BANNER ────────────────────────────────────────────────────────────
-st.markdown("""
-<div class="top-banner">
-    <div style="display: flex; align-items: center; gap: 16px;">
-        <div class="badge-purple">✦ SDG 3 · Good Health</div>
-        <div>
-            <h2 style="margin: 0; font-size: 22px; font-weight: 700;">Drivers of Life Expectancy Across Countries</h2>
-            <p style="margin: 0; font-size: 13px; color: #a1a1aa; margin-top: 4px;">Juliana Paula T. Binas · BSIS 3A · Analytics Techniques and Tools</p>
-        </div>
-    </div>
-    <div style="display: flex; gap: 12px;">
-        <div class="badge-light">2000–<br>2024</div>
-        <div class="badge-pink">World<br>Bank</div>
-    </div>
-</div>
-""", unsafe_allow_html=True)
+country_list = ["All Countries"] + list(df_clean['Country'].unique())
+selected_country = st.sidebar.selectbox("🗺️ Select Country", country_list)
 
-# ── KPI ROW ──────────────────────────────────────────────────────────────────
-st.markdown(f"""
-<div class="kpi-container">
-    <div class="kpi-card" style="border-top: 4px solid {C_UK};">
-        <div>🫀</div>
-        <div class="kpi-title">Life Expectancy</div>
-        <div class="kpi-value">78.5 yrs</div>
-        <div class="kpi-delta-down">▼ -0.16 vs 2020</div>
-    </div>
-    <div class="kpi-card" style="border-top: 4px solid #3b82f6;">
-        <div>🏥</div>
-        <div class="kpi-title">Healthcare Spending</div>
-        <div class="kpi-value">$8,863</div>
-        <div class="kpi-delta-down">▼ -$606 vs 2020</div>
-    </div>
-    <div class="kpi-card" style="border-top: 4px solid {C_ORANGE};">
-        <div>💰</div>
-        <div class="kpi-title">GDP Per Capita</div>
-        <div class="kpi-value">$61k</div>
-        <div class="kpi-delta-down">▼ -$5k vs 2020</div>
-    </div>
-    <div class="kpi-card" style="border-top: 4px solid {C_RED};">
-        <div>☁️</div>
-        <div class="kpi-title">CO₂ Emissions</div>
-        <div class="kpi-value">9.9 tons</div>
-        <div class="kpi-delta-up">▲ 0.58 vs 2020</div>
-    </div>
-</div>
-""", unsafe_allow_html=True)
+year_range = st.sidebar.slider(
+    "📅 Select Timeline Window",
+    int(df_clean['Year'].min()),
+    int(df_clean['Year'].max()),
+    (int(df_clean['Year'].min()), int(df_clean['Year'].max()))
+)
 
-# ── SECTION 1: GENERAL EXPLANATION (NEW) ─────────────────────────────────────
-st.markdown('<div class="section-header"><span class="dot" style="color:#0ea5e9;">●</span> WHY ARE WE LOOKING AT THIS? (GENERAL GUIDE)</div>', unsafe_allow_html=True)
+# Apply active filters to data stream
+filtered_df = df_clean[
+    (df_clean['Year'] >= year_range[0]) & 
+    (df_clean['Year'] <= year_range[1])
+]
+if selected_country != "All Countries":
+    filtered_df = filtered_df[filtered_df['Country'] == selected_country]
+
+# 4. Header Section
+st.title("🏥 Drivers of Human Life Expectancy")
+st.markdown("### **An Interactive Analytics Platform Supporting SDG 3: Good Health and Well-Being**")
+st.caption("Designed by: Juliana Paula T. Binas | Course: BSIS 3A | Subject: Analytics Techniques and Tools")
+st.write("---")
+
+# 5. Dynamic KPI Banner Cards
+col1, col2, col3, col4 = st.columns(4)
+with col1:
+    st.markdown("<div class='metric-card'>", unsafe_html=True)
+    st.metric("Avg Life Expectancy", f"{filtered_df['Life_Expectancy'].mean():.1f} Years")
+    st.markdown("</div>", unsafe_html=True)
+with col2:
+    st.markdown("<div class='metric-card'>", unsafe_html=True)
+    st.metric("Avg Annual Medical Spending", f"${filtered_df['Healthcare_Spending'].mean():,.2f}")
+    st.markdown("</div>", unsafe_html=True)
+with col3:
+    st.markdown("<div class='metric-card'>", unsafe_html=True)
+    st.metric("Avg GDP Per Capita (Wealth)", f"${filtered_df['GDP_per_capita'].mean():,.2f}")
+    st.markdown("</div>", unsafe_html=True)
+with col4:
+    st.markdown("<div class='metric-card'>", unsafe_html=True)
+    st.metric("Avg CO2 Pollution Footprint", f"{filtered_df['CO2_Emissions'].mean():.2f} tons")
+    st.markdown("</div>", unsafe_html=True)
+
+# 6. CHART SECTION 1: Time Series Trend
+st.header("1. ⏳ Longevity Trajectories Over Time")
+fig_trend = px.line(
+    filtered_df, x="Year", y="Life_Expectancy", color="Country",
+    title="Tracking Average Lifespans from 2000 to Present",
+    labels={"Life_Expectancy": "Life Expectancy (Years)", "Year": "Calendar Year"},
+    markers=True
+)
+fig_trend.update_layout(hovermode="x unified")
+st.plotly_chart(fig_trend, use_container_width=True)
 
 st.markdown("""
-<div class="white-card">
-    <p style="font-size: 15px; color: #333; line-height: 1.6; margin-bottom: 0;">
-        <strong>The Goal:</strong> The United Nations created <em>Sustainable Development Goal 3 (SDG 3)</em> to ensure healthy lives and promote well-being for all ages. To figure out how to achieve this, we need to know what actually makes people live longer.<br><br>
-        Instead of guessing, we used 24 years of real-world data from the United States and the United Kingdom. We compared how long people live (<strong>Life Expectancy</strong>) against how much money is spent on health (<strong>Healthcare Spending</strong>), the average wealth of the citizens (<strong>GDP per capita</strong>), environmental pollution (<strong>CO₂ Emissions</strong>), and access to basic needs (<strong>Water Access</strong>). <br><br>
-        The charts below prove mathematically that <strong>money alone doesn't buy health</strong>—how it is spent, and the environment people live in, play a massive role.
-    </p>
+<div class='explanation-box'>
+    <strong>💡 What is this graph showing?</strong><br>
+    This line graph tracks the historical path of standard lifespans for citizens across both the United States and the United Kingdom over the last two decades.
+    <br><br>
+    <strong>🔍 Key Takeaway in Plain English:</strong><br>
+    Notice how both lines show a steady, climbing slope over time. This means that year over year, humanity is successfully extending the average person's lifespan. Even though economic crises, pandemics, or political updates occur from year to year, the long-term trend is upward. This visual indicator demonstrates that structural advancements—such as better medical access, healthier dietary awareness, and cleaner community infrastructure—consistently move the needle in favor of long-term human survival.
 </div>
-""", unsafe_allow_html=True)
+""", unsafe_html=True)
 
+st.write("---")
 
-# ── SECTION 2: TRENDS OVER TIME ──────────────────────────────────────────────
-st.markdown('<div class="section-header"><span class="dot" style="color:#9b51e0;">●</span> THE BIG PICTURE: TRENDS OVER TIME</div>', unsafe_allow_html=True)
+# 7. CHART SECTION 2: Dynamic Explorations
+st.header("2. 🔍 Interactive Relationship Explorer")
+st.write("Pick a metric from the drop-down box below. The chart below will rewrite itself dynamically to map that chosen metric directly against national Life Expectancy.")
 
-c1, c2 = st.columns([2.5, 1])
+pred_choice = st.selectbox(
+    "Select a potential driver to analyze:",
+    ["Healthcare_Spending", "Water_Access", "GDP_per_capita", "CO2_Emissions"]
+)
 
-with c1:
-    st.markdown('<div class="white-card">', unsafe_allow_html=True)
-    st.markdown('**📈 Life expectancy over time**', unsafe_allow_html=True)
+fig_scatter = px.scatter(
+    filtered_df, x=pred_choice, y="Life_Expectancy", color="Country",
+    trendline="ols", title=f"Statistical Mapping: {pred_choice.replace('_',' ')} vs Life Expectancy",
+    labels={pred_choice: pred_choice.replace('_',' '), "Life_Expectancy": "Life Expectancy (Years)"}
+)
+st.plotly_chart(fig_scatter, use_container_width=True)
+
+# Comprehensive contextual explanations
+exp_dict = {
+    "Healthcare_Spending": """
+        <strong>💡 What is this graph showing?</strong> This scatter plot maps country financial investments in health platforms against the average lifespan of its citizens. The straight trendline visualizes the general direction of this pairing.<br><br>
+        <strong>🔍 Key Takeaway in Plain English:</strong> As healthcare investments climb toward the right, life expectancy scales upward. This is a clear, visual validation of a basic truth: when a society dedicates funds to build better hospitals, finance modern medical research, and lower prescription drug barriers, people live longer, healthier lives. Financial investment directly translates to saved lives.
+    """,
+    "Water_Access": """
+        <strong>💡 What is this graph showing?</strong> This maps the percentage of a country's populace with access to clean, safely managed drinking water against their overall life expectancy.<br><br>
+        <strong>🔍 Key Takeaway in Plain English:</strong> Because our data focuses heavily on two highly modernized powerhouse nations (the USA and UK), water infrastructure has consistently sat near 100% for decades. The tiny variations you see are minor statistical tracking changes rather than actual drops in utility access. In highly developed countries, clean water is a stable baseline, meaning changes in longevity are driven by other external factors.
+    """,
+    "GDP_per_capita": """
+        <strong>💡 What is this graph showing?</strong> This chart maps raw economic power (Gross Domestic Product per person) against country longevity metrics.<br><br>
+        <strong>🔍 Key Takeaway in Plain English:</strong> The trendline reveals a nuanced reality: while financial stability gives countries a solid foundation, raw economic generation stops yielding automatic life expectancy gains after hitting a certain high-income ceiling. Just generating more national income does not make people live longer unless that wealth is intentionally allocated to medical access, wellness safety nets, and community care.
+    """,
+    "CO2_Emissions": """
+        <strong>💡 What is this graph showing?</strong> This plot evaluates the environmental toll, looking at industrial pollution levels (CO2 emissions per person) alongside overall human life expectancy.<br><br>
+        <strong>🔍 Key Takeaway in Plain English:</strong> Notice the downward tilt of the trendline. As industrial greenhouse gases step up, it creates real physical vulnerabilities for the population (such as worsened air quality and increased chronic respiratory illnesses). This forms an invisible ceiling on health metrics, indicating that environmental damage directly chips away at the longevity gains achieved by modern medicine.
+    """
+}
+st.markdown(f"<div class='explanation-box'>{exp_dict[pred_choice]}</div>", unsafe_html=True)
+
+st.write("---")
+
+# 8. CHART SECTION 3: Deep Statistical Inference
+st.header("3. 🤖 Advanced Analytical Insights: OLS vs Robust Regression")
+st.write("""
+In statistical analysis, standard models (**OLS Regression**) can easily be misled by unique outliers or historical spikes. 
+To ensure absolute accuracy, we applied an advanced, AI-driven **Robust Regression Model (RLM)**. Think of Robust Regression as an intelligent filter: it automatically detects extreme data points and prevents them from distorting the real data story.
+""")
+
+col_table, col_chart = st.columns([4, 5])
+
+with col_table:
+    st.markdown("#### **The Confirmed Driver Matrix**")
+    st.write("Here is the simplified breakdown of what our statistical test proved:")
     
-    fig1 = px.line(df, x='Year', y='Life Expectancy', color='Country Name', 
-                   color_discrete_map={'United Kingdom': C_UK, 'United States': C_US}, markers=True)
-    fig1.update_layout(margin=dict(l=0, r=0, t=10, b=0), plot_bgcolor='rgba(0,0,0,0)', yaxis=dict(showgrid=True, gridcolor='#f1f1f1'))
-    st.plotly_chart(fig1, use_container_width=True)
-    
+    # Formatted table for standard consumers
     st.markdown("""
-    <div class="insight-box insight-purple">
-        <div style="font-size:20px;">💡</div>
-        <div><strong>What are we seeing?</strong> This timeline shows that the UK consistently has a higher life expectancy than the US. You can also see a sharp dip around 2020-2021 for both countries, which represents the tragic impact of the global COVID-19 pandemic.</div>
-    </div>
-    </div>
-    """, unsafe_allow_html=True)
+    | Structural Driver | Direction of Impact | Proven to Matter? |
+    | :--- | :--- | :--- |
+    | 🏥 **Healthcare Spending** | <span class='badge-positive'>⬆️ Positive Impact</span> | **Yes** (p=0.0357) |
+    | 🚰 **Clean Water Access** | <span class='badge-negative'>⬇️ Paradoxical Baseline</span> | **Yes** (p=0.0000) |
+    | 💰 **GDP Per Capita (Wealth)** | <span class='badge-neutral'>➖ No Clear Effect</span> | **No** (p=0.2145) |
+    | 🏭 **CO2 Air Emissions** | <span class='badge-negative'>⬇️ Negative Impact</span> | **Yes** (p=0.0000) |
+    """, unsafe_html=True)
 
-with c2:
-    st.markdown('<div class="white-card">', unsafe_allow_html=True)
-    st.markdown('**📊 US vs UK in 2021**', unsafe_allow_html=True)
-    
-    df_2021 = df[df['Year'] == 2021]
-    fig2 = px.bar(df_2021, x='Country Name', y='Life Expectancy', color='Country Name',
-                  color_discrete_map={'United Kingdom': C_UK, 'United States': C_US})
-    fig2.update_layout(showlegend=False, margin=dict(l=0, r=0, t=20, b=0), plot_bgcolor='rgba(0,0,0,0)')
-    st.plotly_chart(fig2, use_container_width=True)
-    
-    st.markdown("""
-    <div class="insight-box insight-pink" style="background:#fdf2f8; color:#9d174d; border-left: 4px solid #f472b6;">
-        <div>Even though the US spends almost double on healthcare per person, the UK lives about 3 years longer on average.</div>
-    </div>
-    </div>
-    """, unsafe_allow_html=True)
+with col_chart:
+    st.markdown("#### **Comparing Model Calculations Side-by-Side**")
+    categories = ['Healthcare Spending', 'Water Infrastructure', 'National Wealth (GDP)', 'CO2 Emissions']
+    fig_bars = go.Figure(data=[
+        go.Bar(name='Standard Model (OLS)', x=categories, y=[0.0001, -3.3797, 0.0000, -0.4938], marker_color='#4a5568'),
+        go.Bar(name='Outlier-Proof Model (RLM)', x=categories, y=[0.0004, -3.5965, 0.0000, -0.5604], marker_color='#dd6b20')
+    ])
+    fig_bars.update_layout(
+        barmode='group', 
+        height=320, 
+        margin=dict(t=15, b=15, l=15, r=15),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+    )
+    st.plotly_chart(fig_bars, use_container_width=True)
 
-# ── SECTION 3: DEEP DIVE (THE GLOSSARY) ──────────────────────────────────────
-st.markdown('<div class="section-header"><span class="dot" style="color:#f59e0b;">●</span> DEEP DIVE: UNDERSTANDING THE FACTORS</div>', unsafe_allow_html=True)
-
-d1, d2 = st.columns(2)
-
-with d1:
-    st.markdown('<div class="white-card"><h4 style="color:#3b82f6;">🏥 Healthcare Spending vs Life Expectancy</h4>', unsafe_allow_html=True)
-    fig_h = px.scatter(df, x='Healthcare Spending', y='Life Expectancy', color='Country Name', color_discrete_map={'United Kingdom': C_UK, 'United States': C_US})
-    fig_h.update_layout(margin=dict(l=0, r=0, t=10, b=0), plot_bgcolor='rgba(0,0,0,0)')
-    st.plotly_chart(fig_h, use_container_width=True)
-    st.markdown("""<div class="explainer-text"><strong>Simple Explanation:</strong> This chart asks, "Does spending more money make us live longer?" The upward slope means <strong>YES</strong>. As countries invest more in hospitals, medicine, and doctors, people generally live longer.</div></div>""", unsafe_allow_html=True)
-
-with d2:
-    st.markdown('<div class="white-card"><h4 style="color:#ef4444;">☁️ CO₂ Emissions vs Life Expectancy</h4>', unsafe_allow_html=True)
-    fig_c = px.scatter(df, x='CO2 Emissions', y='Life Expectancy', color='Country Name', color_discrete_map={'United Kingdom': C_UK, 'United States': C_US})
-    fig_c.update_layout(margin=dict(l=0, r=0, t=10, b=0), plot_bgcolor='rgba(0,0,0,0)')
-    st.plotly_chart(fig_c, use_container_width=True)
-    st.markdown("""<div class="explainer-text"><strong>Simple Explanation:</strong> This chart asks, "Does air pollution shorten our lives?" The downward slope means <strong>YES</strong>. Higher CO₂ emissions represent worse air quality, which leads to respiratory diseases and a lower average lifespan.</div></div>""", unsafe_allow_html=True)
-
-
-# ── SECTION 4: THE MATH MADE SIMPLE ──────────────────────────────────────────
-st.markdown('<div class="section-header"><span class="dot" style="color:#10b981;">●</span> THE MATH MADE SIMPLE (PREDICTIVE MODEL)</div>', unsafe_allow_html=True)
-
-r1, r2 = st.columns([1.5, 1])
-
-with r1:
-    st.markdown("""
-    <div class="white-card">
-        <strong style="font-size:16px; color:#333;">How accurate are our findings?</strong>
-        <p style="font-size: 14px; color: #555; margin-top: 8px;">To prove our theory, we built a <strong>Robust Regression Model</strong>. Think of this as an AI pattern-finder that looks at all the data simultaneously while ignoring weird "flukes" (like the sudden COVID drop).</p>
-    """, unsafe_allow_html=True)
-    
-    df_uk = df[df['Country Name'] == 'United Kingdom']
-    fig_pred = go.Figure()
-    fig_pred.add_trace(go.Scatter(x=df_uk['Year'], y=df_uk['Life Expectancy'], mode='lines+markers', name='Actual Reality', line=dict(color=C_UK, width=3)))
-    fig_pred.add_trace(go.Scatter(x=df_uk['Year'], y=df_uk['Predicted'], mode='lines', name='What our Math Predicted', line=dict(color=C_US, width=3, dash='dash')))
-    fig_pred.update_layout(margin=dict(l=0, r=0, t=0, b=0), height=250, legend=dict(orientation="h", y=-0.2, x=0), plot_bgcolor='rgba(0,0,0,0)')
-    st.plotly_chart(fig_pred, use_container_width=True)
-    st.markdown("</div>", unsafe_allow_html=True)
-
-with r2:
-    st.markdown("""
-    <div class="white-card">
-        <strong style="font-size:16px; color:#333;">The Scorecard</strong>
-        <div style="background:#f5f3ff; border-radius:8px; padding:16px; text-align:center; margin-top: 16px;">
-            <div style="font-size:12px; font-weight:700; color:#6b21a8;">THE R-SQUARED (R²) SCORE</div>
-            <div style="font-size:36px; font-weight:800; color:#4c1d95;">0.94</div>
-        </div>
-        <p style="font-size: 14px; color: #555; margin-top: 16px; line-height: 1.6;">
-            <strong>What does 0.94 mean?</strong><br>
-            It means our findings are <strong>94% accurate</strong>. The combination of money spent on health, average wealth, clean water, and pollution explains 94% of the reasons why someone's life expectancy changes. In data science, a score this high means we have found a very strong, reliable truth.
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
-
-# ── SECTION 5: DATA EXPLORER ─────────────────────────────────────────────────
-st.markdown('<div class="section-header"><span class="dot" style="color:#64748b;">●</span> RAW DATA EXPLORER</div>', unsafe_allow_html=True)
-
-with st.expander("Click to view and search the raw dataset behind these charts"):
-    st.dataframe(df[['Year', 'Country Name', 'Life Expectancy', 'Healthcare Spending', 'GDP per capita', 'CO2 Emissions', 'Water Access']], use_container_width=True)
-
-# ── CONCLUSION FOOTER ────────────────────────────────────────────────────────
 st.markdown("""
-<div class="conclusion-box">
-    <h3 style="margin-top: 0;">✦ The Final Verdict</h3>
-    <p style="color: #d1d5db; font-size: 15px; line-height: 1.6; margin-bottom: 0;">
-        If governments want to achieve <strong>SDG 3: Good Health and Well-Being</strong>, they cannot just focus on one thing. The data clearly shows a two-step formula for longer lives: 
-        <br><br>
-        <strong>1. Invest Smartly:</strong> Increase healthcare spending and secure clean water.<br>
-        <strong>2. Protect the Environment:</strong> Reduce CO₂ emissions. Pollution actively undoes the benefits of healthcare spending by making people sick.
-    </p>
+<div class='explanation-box'>
+    <strong>💡 Let's Decode the Final Findings in Plain English:</strong><br>
+    <ul>
+        <li><strong>🏥 Healthcare Spending (Highly Crucial & Positive):</strong> Our outlier-proof model reveals that medical spending is a powerful engine for longevity. For every increase in structured medical spending, national lifespans steadily rise. Investing in clinics, hospitals, and preventative care yields a direct return in human years.</li>
+        <li><strong>🏭 CO2 Emissions (Highly Dangerous & Negative):</strong> The data uncovers a harsh truth—pollution acts as a life shortener. For every additional unit of CO2 pumped into the atmosphere per person, average national lifespans are pulled down by approximately <strong>0.56 years (nearly 7 months)</strong>. Environmental quality is heavily tied to human health.</li>
+        <li><strong>💰 GDP Per Capita (Not Statistically Significant):</strong> Surprisingly, raw wealth alone doesn't guarantee a longer life. The mathematical statistical test gave this variable a high 'p-value' (0.2145), meaning its connection is likely coincidental. A country can generate massive cash reserves, but if that wealth isn't directly funneled into things that support people—like medical safety nets and public wellness—it won't automatically extend lifespans.</li>
+        <li><strong>🚰 Water Access (Statistical Quirks Explained):</strong> While the chart shows a negative mathematical relationship, this is an interesting statistical illusion! Because both the USA and UK have clean water access pinned near 100%, there is no actual variation for the model to measure. The negative calculation isn't showing that clean water is harmful; rather, it reflects shifting industrial periods in advanced economies over the past 20 years.</li>
+    </ul>
+    <br>
+    <strong>🎯 Final Dashboard Summary for Policy Makers:</strong><br>
+    If we want to successfully achieve <strong>SDG 3 (Good Health and Well-Being)</strong>, countries shouldn't just focus on raw economic growth (GDP). Instead, policy changes should prioritize two main actions: <strong>aggressively investing in public healthcare systems</strong> and <strong>reducing industrial air pollution (CO2)</strong>. These are the two most effective levers for helping citizens live longer, healthier lives.
 </div>
-""", unsafe_allow_html=True)
+""", unsafe_html=True)
