@@ -829,7 +829,10 @@ if show_all:
 """, unsafe_allow_html=True)
 
     st.markdown("""
-  <p>The coefficients for <strong>GDP per Capita</strong> and <strong>Water Access</strong> serve as
+  <p>
+  
+  
+The coefficients for <strong>GDP per Capita</strong> and <strong>Water Access</strong> serve as
   vital comparative controls. Because the United Kingdom and the United States are both highly
   advanced nations with near-universal clean water access and large economies, the structural
   benefits of these factors are largely mediated jointly &#8212; forming the foundational baseline
