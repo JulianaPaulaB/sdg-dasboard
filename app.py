@@ -128,25 +128,6 @@ st.markdown("""
         margin-top: 16px;
         margin-bottom: 8px;
     }
-
-    /* Conclusion Box */
-    .conclusion-box {
-        background-color: #1a1528;
-        border-radius: 12px;
-        padding: 32px;
-        color: white;
-        margin-top: 24px;
-        box-shadow: 0px 10px 25px rgba(0,0,0,0.1);
-    }
-    .conclusion-tag {
-        display: inline-block;
-        padding: 6px 14px;
-        border-radius: 20px;
-        font-size: 13px;
-        font-weight: 700;
-        margin-right: 10px;
-        margin-top: 16px;
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -199,7 +180,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# ── ON-PAGE INTERACTIVE FILTER (EXACTLY LIKE SCREENSHOT) ─────────────────────
+# ── ON-PAGE INTERACTIVE FILTER ───────────────────────────────────────────────
 with st.container(border=True):
     st.markdown("<div style='font-size: 12px; font-weight: 700; color: #666; margin-bottom: -15px;'><span style='color:#9b51e0;'>⚲</span> YEAR</div>", unsafe_allow_html=True)
     selected_year = st.slider("", min_value=int(df['Year'].min()), max_value=int(df['Year'].max()), value=2021, label_visibility="collapsed")
@@ -210,8 +191,9 @@ with st.container(border=True):
     with col_f2:
         selected_country = st.selectbox("COUNTRY", ["Both countries", "United Kingdom", "United States"])
     with col_f3:
-        selected_metric = st.selectbox("METRIC", ["Life Expectancy", "Healthcare Spending", "GDP per capita", "CO2 Emissions", "Water Access"])
-    st.markdown('<div style="text-align: right; font-size: 12px; color: #aaa; font-style: italic;">Hover over charts to see exact data points</div>', unsafe_allow_html=True)
+        # Added "All of the above" to the metric options as requested
+        selected_metric = st.selectbox("METRIC", ["All of the above", "Life Expectancy", "Healthcare Spending", "GDP per capita", "CO2 Emissions", "Water Access"])
+    st.markdown('<div style="text-align: right; font-size: 12px; color: #aaa; font-style: italic;">Hover over charts for details</div>', unsafe_allow_html=True)
 
 # ── DYNAMIC KPI CALCULATIONS BASED ON SLIDER ─────────────────────────────────
 if selected_country == "Both countries":
@@ -224,17 +206,17 @@ else:
 def get_mean(dataframe, col):
     return dataframe[col].mean() if not dataframe.empty else 0
 
-# Calculate Current Values
 val_life = get_mean(current_data, 'Life Expectancy')
 val_health = get_mean(current_data, 'Healthcare Spending')
 val_gdp = get_mean(current_data, 'GDP per capita')
 val_co2 = get_mean(current_data, 'CO2 Emissions')
+val_water = get_mean(current_data, 'Water Access')
 
-# Calculate Deltas (vs previous year)
 delta_life = val_life - get_mean(prev_data, 'Life Expectancy')
 delta_health = val_health - get_mean(prev_data, 'Healthcare Spending')
 delta_gdp = val_gdp - get_mean(prev_data, 'GDP per capita')
 delta_co2 = val_co2 - get_mean(prev_data, 'CO2 Emissions')
+delta_water = val_water - get_mean(prev_data, 'Water Access')
 
 def format_delta(delta, is_currency=False):
     if prev_data.empty or delta == val_life: return "<span class='kpi-neutral'>No prior data</span>"
@@ -273,41 +255,51 @@ st.markdown(f"""
         <div class="kpi-value">{val_co2:.1f} tons</div>
         {format_delta(delta_co2, "co2")}
     </div>
+    <div class="kpi-card" style="border-top: 4px solid {C_GREEN};">
+        <div>💧</div>
+        <div class="kpi-title">Water Access</div>
+        <div class="kpi-value">{val_water:.1f}%</div>
+        {format_delta(delta_water)}
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+# Centered down arrow
+st.markdown("""
+<div style="text-align:center; margin-top: 16px; margin-bottom: 32px;">
+    <button style="background: white; border: 1px solid #ddd; border-radius: 50%; width: 40px; height: 40px; color: #666; cursor: pointer; font-size: 20px; box-shadow: 0px 4px 6px rgba(0,0,0,0.05);">↓</button>
 </div>
 """, unsafe_allow_html=True)
 
 
 # ── SECTION 1: TRENDS OVER TIME ──────────────────────────────────────────────
-st.markdown('<div class="section-header"><span style="color:#9b51e0; font-size: 22px;">●</span> PART 1: MACRO TRENDS & HISTORICAL OVERVIEW</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-header"><span style="color:#9b51e0; font-size: 22px;">●</span> OVERVIEW — TRENDS OVER TIME</div>', unsafe_allow_html=True)
 
 c1, c2 = st.columns([2.5, 1])
 
 with c1:
     st.markdown('<div class="white-card">', unsafe_allow_html=True)
-    st.markdown('<strong style="font-size: 16px;">📈 Life Expectancy Trajectory (2000-2024)</strong> <span style="background:#f3e8ff; color:#6b21a8; padding:2px 8px; border-radius:10px; font-size:11px;">Longitudinal Trend</span>', unsafe_allow_html=True)
+    st.markdown(f'<strong style="font-size: 16px;">📈 Life expectancy over time</strong> <span style="background:#f3e8ff; color:#6b21a8; padding:2px 8px; border-radius:10px; font-size:11px;">Trend</span>', unsafe_allow_html=True)
     
-    # We display the full line chart for context, regardless of selected year
     fig1 = px.line(df, x='Year', y='Life Expectancy', color='Country Name', 
                    color_discrete_map={'United Kingdom': C_UK, 'United States': C_US}, markers=True,
                    hover_data={"Year": True, "Life Expectancy": ":.1f"})
-    # Add a vertical line to show where the slider currently is
     fig1.add_vline(x=selected_year, line_width=2, line_dash="dash", line_color="gray", opacity=0.5)
     fig1.update_layout(margin=dict(l=0, r=0, t=20, b=0), plot_bgcolor='rgba(0,0,0,0)', yaxis=dict(showgrid=True, gridcolor='#f1f1f1'))
     st.plotly_chart(fig1, use_container_width=True)
     
     st.markdown("""
-    <div class="how-to-read">🔍 Detailed Analysis:</div>
-    <div class="explainer-text" style="margin-top: 0;">
-        This longitudinal timeline captures a quarter-century of demographic history. The steady, upward climb seen from 2000 to 2019 showcases the cumulative triumphs of modern medicine, widespread vaccination, and improvements in chronic disease management. However, the unprecedented, sharp plunge visible in 2020 and 2021 represents the catastrophic mortality shock of the COVID-19 pandemic. Notably, the purple line representing the United Kingdom consistently rests above the blue line of the United States, indicating a persistent, systemic advantage in British health outcomes across the entire two-decade span.
+    <div class="insight-box insight-purple">
+        <div>✦</div>
+        <div>Both countries dipped in 2020-2021 due to COVID-19. The UK recovered faster and consistently leads the USA in life expectancy despite the USA spending nearly 2x more on healthcare. This longitudinal timeline captures a quarter-century of demographic history, showcasing the steady, upward climb prior to the pandemic.</div>
     </div>
     </div>
     """, unsafe_allow_html=True)
 
 with c2:
     st.markdown('<div class="white-card">', unsafe_allow_html=True)
-    st.markdown(f'<strong style="font-size: 16px;">📊 Country Comparison ({selected_year})</strong> <span style="background:#fce7f3; color:#9f1239; padding:2px 8px; border-radius:10px; font-size:11px;">Selected Year</span>', unsafe_allow_html=True)
+    st.markdown(f'<strong style="font-size: 16px;">📊 Country comparison</strong> <span style="background:#fce7f3; color:#9f1239; padding:2px 8px; border-radius:10px; font-size:11px;">{selected_year}</span>', unsafe_allow_html=True)
     
-    # Bar chart dynamically updates based on the slider
     df_bar = df[df['Year'] == selected_year]
     fig2 = px.bar(df_bar, x='Country Name', y='Life Expectancy', color='Country Name',
                   color_discrete_map={'United Kingdom': C_UK, 'United States': C_US},
@@ -316,120 +308,165 @@ with c2:
     st.plotly_chart(fig2, use_container_width=True)
     
     st.markdown("""
-    <div class="insight-box insight-purple" style="margin-top: 24px;">
+    <div class="insight-box insight-pink" style="background:#fdf2f8; color:#9d174d; border-left: 4px solid #f472b6;">
         <div>✦</div>
-        <div>Despite possessing the world's largest economy and highest gross medical expenditure, the United States suffers a roughly 3-year life expectancy deficit compared to the UK. This stark contrast introduces the concept of structural efficiency.</div>
+        <div>The UK outperforms the USA by ~3 years — spending efficiency, not just total spending, drives outcomes. Despite possessing the world's largest economy, the USA suffers a structural deficit.</div>
     </div>
     </div>
     """, unsafe_allow_html=True)
 
 
-# ── SECTION 2: HEALTHCARE EFFICIENCY ─────────────────────────────────────────
-st.markdown('<div class="section-header"><span style="color:#f59e0b; font-size: 22px;">●</span> PART 2: THE HEALTHCARE EFFICIENCY PARADOX</div>', unsafe_allow_html=True)
+# ── SECTION 2: KEY DRIVERS ───────────────────────────────────────────────────
+st.markdown('<div class="section-header"><span style="color:#0ea5e9; font-size: 22px;">●</span> KEY DRIVERS — WHAT AFFECTS LIFE EXPECTANCY?</div>', unsafe_allow_html=True)
 
-e1, e2 = st.columns([1, 2])
-
-with e1:
-    st.markdown("""
-    <div class="white-card">
-        <h4 style="color:#d97706; margin-top:0;">More Capital Does Not Equal More Time</h4>
-        <p style="font-size: 14.5px; color: #334155; line-height: 1.7;">
-            A core assumption in health economics is that greater financial investment yields better health outcomes. However, the data reveals a massive discrepancy. The United States spends nearly double per capita on healthcare compared to the United Kingdom, yet consistently achieves lower average lifespans.<br><br>
-            To visualize this, the chart to the right plots <strong>Healthcare Efficiency</strong>—a metric calculated by dividing a country's life expectancy by its healthcare spending (in thousands). <br><br>
-            The resulting graph shows that as the US has exponentially increased its medical spending over the last 20 years, its actual "return on investment" (years of life gained per dollar spent) has actively plummeted. The UK's centralized NHS model, while operating on a tighter budget, converts capital into actual lifespan with vastly superior efficiency.
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
-
-with e2:
-    st.markdown('<div class="white-card">', unsafe_allow_html=True)
-    st.markdown('<strong style="font-size: 16px;">📉 Years of Life Expected per $1,000 Spent (Efficiency)</strong>', unsafe_allow_html=True)
-    fig_e = px.line(df, x='Year', y='Efficiency', color='Country Name', 
-                    color_discrete_map={'United Kingdom': C_UK, 'United States': C_US}, markers=True,
-                    hover_data={"Efficiency": ":.2f"})
-    fig_e.add_vline(x=selected_year, line_width=2, line_dash="dash", line_color="gray", opacity=0.5)
-    fig_e.update_layout(margin=dict(l=0, r=0, t=20, b=0), plot_bgcolor='rgba(0,0,0,0)', yaxis=dict(showgrid=True, gridcolor='#f1f1f1', title="Years of Life per $1k"))
-    st.plotly_chart(fig_e, use_container_width=True)
-    st.markdown("</div>", unsafe_allow_html=True)
-
-
-# ── SECTION 3: THE 4 PILLARS EXPLAINED ───────────────────────────────────────
-st.markdown('<div class="section-header"><span style="color:#0ea5e9; font-size: 22px;">●</span> PART 3: IN-DEPTH ANALYSIS OF THE FOUR CORE DRIVERS</div>', unsafe_allow_html=True)
-
-d1, d2 = st.columns(2)
+d1, d2, d3, d4 = st.columns(4)
 
 with d1:
-    st.markdown('<div class="white-card"><h4 style="color:#3b82f6; margin-top:0;">🏥 1. Healthcare Spending Dynamics</h4>', unsafe_allow_html=True)
-    fig_h = px.scatter(df, x='Healthcare Spending', y='Life Expectancy', color='Country Name', color_discrete_map={'United Kingdom': C_UK, 'United States': C_US}, trendline="ols", hover_data={"Healthcare Spending": ":.0f", "Life Expectancy": ":.1f"})
-    fig_h.update_layout(margin=dict(l=0, r=0, t=10, b=0), plot_bgcolor='rgba(0,0,0,0)')
+    st.markdown('<div class="white-card"><h4 style="color:#3b82f6; margin-top:0;">🏥 Healthcare spending</h4>', unsafe_allow_html=True)
+    fig_h = px.scatter(df, x='Healthcare Spending', y='Life Expectancy', color='Country Name', color_discrete_map={'United Kingdom': C_UK, 'United States': C_US}, hover_data={"Healthcare Spending": ":.0f", "Life Expectancy": ":.1f"})
+    fig_h.update_layout(margin=dict(l=0, r=0, t=10, b=0), plot_bgcolor='rgba(0,0,0,0)', showlegend=False)
     st.plotly_chart(fig_h, use_container_width=True)
-    st.markdown("""<div class="how-to-read">🔍 Economic Interpretation:</div><div class="explainer-text" style="margin-top: 0;"><strong>Diminishing Marginal Returns.</strong> While the upward-sloping trend lines confirm that more money generally buys longer life (via advanced technology, research, and infrastructure), the scatter plot reveals a plateau effect. Notice how the blue dots (USA) stretch extremely far to the right across the X-axis (representing massive expenditures), but fail to climb proportionally higher on the Y-axis. This suggests that past a certain threshold, pumping unstructured money into a privatized health system stops yielding biological benefits.</div></div>""", unsafe_allow_html=True)
-
-    st.markdown('<div class="white-card" style="margin-top: 16px;"><h4 style="color:#f59e0b; margin-top:0;">💰 2. GDP per capita (The Wealth Effect)</h4>', unsafe_allow_html=True)
-    fig_g = px.scatter(df, x='GDP per capita', y='Life Expectancy', color='Country Name', color_discrete_map={'United Kingdom': C_UK, 'United States': C_US}, trendline="ols")
-    fig_g.update_layout(margin=dict(l=0, r=0, t=10, b=0), plot_bgcolor='rgba(0,0,0,0)')
-    st.plotly_chart(fig_g, use_container_width=True)
-    st.markdown("""<div class="how-to-read">🔍 Socio-Economic Interpretation:</div><div class="explainer-text" style="margin-top: 0;"><strong>The Determinants of Health.</strong> Gross Domestic Product per capita is not just a measure of a nation's bank account; it is a proxy for the standard of living. The clear positive correlation shown here reflects that wealthier populations can afford safer housing, higher quality nutrition, lower occupational hazards, and experience less poverty-induced chronic stress. Wealth essentially acts as a protective shield against premature mortality.</div></div>""", unsafe_allow_html=True)
+    st.markdown("""<div style="background-color: #f0f9ff; color: #0c4a6e; border-left: 4px solid #00b4d8; padding: 12px; border-radius: 8px; font-size: 13.5px; margin-top: 12px; line-height: 1.6;"><strong>Positive ↑</strong> — More investment generally leads to longer lives. However, the plateau effect in the USA suggests diminishing marginal returns when money is pumped into an unstructured system.</div></div>""", unsafe_allow_html=True)
 
 with d2:
-    st.markdown('<div class="white-card"><h4 style="color:#ef4444; margin-top:0;">☁️ 3. CO₂ Emissions (Environmental Toxicity)</h4>', unsafe_allow_html=True)
-    fig_c = px.scatter(df, x='CO2 Emissions', y='Life Expectancy', color='Country Name', color_discrete_map={'United Kingdom': C_UK, 'United States': C_US}, trendline="ols", hover_data={"CO2 Emissions": ":.1f", "Life Expectancy": ":.1f"})
-    fig_c.update_layout(margin=dict(l=0, r=0, t=10, b=0), plot_bgcolor='rgba(0,0,0,0)')
-    st.plotly_chart(fig_c, use_container_width=True)
-    st.markdown("""<div class="how-to-read">🔍 Physiological Interpretation:</div><div class="explainer-text" style="margin-top: 0;"><strong>The Environmental Toll.</strong> Unlike wealth and healthcare, which build life, CO₂ acts as an active destructive force. The steep, downward-sloping trend line highlights a grim reality: high per-capita emissions are deeply intertwined with severe industrial pollution, high particulate matter (PM2.5) in the air, and systemic smog. Long-term exposure to these conditions triggers respiratory diseases, cardiovascular failure, and certain cancers. The data unequivocally proves that a toxic environment actively erodes the life-extending benefits of modern medicine.</div></div>""", unsafe_allow_html=True)
+    st.markdown('<div class="white-card"><h4 style="color:#f59e0b; margin-top:0;">💰 GDP per capita</h4>', unsafe_allow_html=True)
+    fig_g = px.scatter(df, x='GDP per capita', y='Life Expectancy', color='Country Name', color_discrete_map={'United Kingdom': C_UK, 'United States': C_US})
+    fig_g.update_layout(margin=dict(l=0, r=0, t=10, b=0), plot_bgcolor='rgba(0,0,0,0)', showlegend=False)
+    st.plotly_chart(fig_g, use_container_width=True)
+    st.markdown("""<div style="background-color: #fffbeb; color: #92400e; border-left: 4px solid #f59e0b; padding: 12px; border-radius: 8px; font-size: 13.5px; margin-top: 12px; line-height: 1.6;"><strong>Positive ↑</strong> — Wealthier nations have higher living standards, allowing citizens to afford better nutrition, safer housing, and face less poverty-induced chronic stress.</div></div>""", unsafe_allow_html=True)
 
-    st.markdown('<div class="white-card" style="margin-top: 16px;"><h4 style="color:#10b981; margin-top:0;">💧 4. Universal Water Access</h4>', unsafe_allow_html=True)
+with d3:
+    st.markdown('<div class="white-card"><h4 style="color:#10b981; margin-top:0;">💧 Water access</h4>', unsafe_allow_html=True)
     fig_w = px.scatter(df, x='Year', y='Water Access', color='Country Name', color_discrete_map={'United Kingdom': C_UK, 'United States': C_US})
     fig_w.update_layout(margin=dict(l=0, r=0, t=10, b=0), plot_bgcolor='rgba(0,0,0,0)', showlegend=False)
     st.plotly_chart(fig_w, use_container_width=True)
-    st.markdown("""<div class="how-to-read">🔍 Foundational Interpretation:</div><div class="explainer-text" style="margin-top: 0;"><strong>The Baseline Prerequisite.</strong> Throughout human history, lack of clean water has been the leading cause of low life expectancy due to the rampant spread of waterborne diseases like cholera and dysentery. For advanced nations like the US and UK, the data points hover securely near the 100% mark. While it may look flat and uneventful, this 100% saturation is the absolute prerequisite foundation that allows these nations to even reach 70+ years of age in the first place.</div></div>""", unsafe_allow_html=True)
+    st.markdown("""<div style="background-color: #ecfdf5; color: #065f46; border-left: 4px solid #10b981; padding: 12px; border-radius: 8px; font-size: 13.5px; margin-top: 12px; line-height: 1.6;"><strong>Positive ↑</strong> — Universal access to clean water directly cuts down the burden of preventable diseases. It acts as the absolute prerequisite foundation for longevity.</div></div>""", unsafe_allow_html=True)
+
+with d4:
+    st.markdown('<div class="white-card"><h4 style="color:#ef4444; margin-top:0;">☁️ CO₂ emissions</h4>', unsafe_allow_html=True)
+    fig_c = px.scatter(df, x='Year', y='CO2 Emissions', color='Country Name', color_discrete_map={'United Kingdom': C_UK, 'United States': C_US})
+    fig_c.update_layout(margin=dict(l=0, r=0, t=10, b=0), plot_bgcolor='rgba(0,0,0,0)', showlegend=False)
+    st.plotly_chart(fig_c, use_container_width=True)
+    st.markdown("""<div style="background-color: #fef2f2; color: #991b1b; border-left: 4px solid #ef4444; padding: 12px; border-radius: 8px; font-size: 13.5px; margin-top: 12px; line-height: 1.6;"><strong>Negative ↓</strong> — High carbon emissions indicate severe air pollution. Long-term exposure triggers respiratory diseases, eroding the life-extending benefits of modern medicine.</div></div>""", unsafe_allow_html=True)
 
 
-# ── SECTION 4: THE MATH MADE SIMPLE ──────────────────────────────────────────
-st.markdown('<div class="section-header"><span style="color:#e11d48; font-size: 22px;">●</span> PART 4: PREDICTIVE MODELING (ROBUST REGRESSION)</div>', unsafe_allow_html=True)
+# Centered down arrow
+st.markdown("""
+<div style="text-align:center; margin-top: 16px; margin-bottom: 32px;">
+    <button style="background: white; border: 1px solid #ddd; border-radius: 50%; width: 40px; height: 40px; color: #666; cursor: pointer; font-size: 20px; box-shadow: 0px 4px 6px rgba(0,0,0,0.05);">↓</button>
+</div>
+""", unsafe_allow_html=True)
 
-r1, r2 = st.columns([1.3, 1])
+
+# ── SECTION 3: REGRESSION MODEL & FINAL INSIGHTS ─────────────────────────────
+st.markdown('<div class="section-header"><span style="color:#e11d48; font-size: 22px;">●</span> REGRESSION MODEL — PERFORMANCE & PREDICTIONS</div>', unsafe_allow_html=True)
+
+r1, r2 = st.columns([1.2, 1])
 
 with r1:
     st.markdown("""
     <div class="white-card">
-        <strong style="font-size:18px; color:#333;">Testing Theory Against Reality</strong>
-        <p style="font-size: 14.5px; color: #555; margin-top: 12px; line-height: 1.7;">
-            To ensure our conclusions are not just visual illusions, we must prove them mathematically. We utilized a <strong>Robust Linear Model (RLM)</strong>. Unlike standard regression, RLM is specifically designed to handle extreme outliers and "shocks" in the data—such as the massive disruption caused by the COVID-19 pandemic in 2020—without letting them completely skew the underlying mathematical truths.<br><br>
-            We fed the algorithm all the historical data for wealth, water, pollution, and health spending, and asked it to blindly "predict" what the life expectancy should be. In the chart below, the solid line is historical reality, while the dashed line represents the algorithm's mathematical prediction based purely on our four variables.
-        </p>
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:16px;">
+            <span style="color:#e11d48; font-size:16px;">ƒx</span>
+            <strong style="font-size:14px; color:#333;">Model performance (Robust RLM)</strong>
+        </div>
+        <div style="display:flex; gap:12px; margin-bottom:16px;">
+            <div style="background:#f5f3ff; border-radius:8px; padding:12px; flex:1; text-align:center;">
+                <div style="font-size:11px; font-weight:700; color:#6b21a8;">R² SCORE</div>
+                <div style="font-size:24px; font-weight:800; color:#4c1d95;">0.94</div>
+            </div>
+            <div style="background:#eff6ff; border-radius:8px; padding:12px; flex:1; text-align:center;">
+                <div style="font-size:11px; font-weight:700; color:#1d4ed8;">RMSE</div>
+                <div style="font-size:24px; font-weight:800; color:#1e3a8a;">0.42</div>
+            </div>
+            <div style="background:#fdf2f8; border-radius:8px; padding:12px; flex:1; text-align:center;">
+                <div style="font-size:11px; font-weight:700; color:#be123c;">OBS.</div>
+                <div style="font-size:24px; font-weight:800; color:#881337;">44</div>
+            </div>
+        </div>
     """, unsafe_allow_html=True)
     
-    # We use the full df for the model plot to show accurate regression curves
     df_uk = df[df['Country Name'] == 'United Kingdom']
     fig_pred = go.Figure()
-    fig_pred.add_trace(go.Scatter(x=df_uk['Year'], y=df_uk['Life Expectancy'], mode='lines+markers', name='Actual Historical Reality', line=dict(color=C_UK, width=3), marker=dict(size=8)))
-    fig_pred.add_trace(go.Scatter(x=df_uk['Year'], y=df_uk['Predicted'], mode='lines', name='Algorithm Prediction (RLM)', line=dict(color=C_US, width=3, dash='dash')))
+    fig_pred.add_trace(go.Scatter(x=df_uk['Year'], y=df_uk['Life Expectancy'], mode='lines+markers', name='Actual', line=dict(color=C_UK, width=3), marker=dict(size=8)))
+    fig_pred.add_trace(go.Scatter(x=df_uk['Year'], y=df_uk['Predicted'], mode='lines', name='Predicted', line=dict(color=C_US, width=3, dash='dash')))
     fig_pred.update_layout(margin=dict(l=0, r=0, t=0, b=0), height=250, legend=dict(orientation="h", y=-0.2, x=0), plot_bgcolor='rgba(0,0,0,0)')
     st.plotly_chart(fig_pred, use_container_width=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
 with r2:
+    # Explicit HTML to match the second screenshot exactly
     st.markdown("""
     <div class="white-card">
-        <strong style="font-size:18px; color:#333;">The Statistical Scorecard</strong>
-        <div style="background:#f5f3ff; border-radius:8px; padding:24px; text-align:center; margin-top: 20px;">
-            <div style="font-size:13px; font-weight:800; color:#6b21a8; letter-spacing: 1px;">THE R-SQUARED (R²) VARIANCE</div>
-            <div style="font-size:54px; font-weight:800; color:#4c1d95; margin-top: 8px;">94%</div>
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom: 24px;">
+            <span style="color:#9b51e0; font-size:16px;">☷</span>
+            <strong style="font-size:14px; color:#333;">Feature importance</strong>
+            <span style="background:#f3e8ff; color:#6b21a8; padding:2px 8px; border-radius:10px; font-size:11px;">from RLM coefficients</span>
         </div>
-        <p style="font-size: 14.5px; color: #555; margin-top: 24px; line-height: 1.7;">
-            <strong>What does an R-Squared of 94% signify?</strong><br>
-            In the realm of data science and statistics, it is incredibly rare to find a model that explains human behavior with such high precision. An R-Squared of 0.94 dictates that a staggering <strong>94% of the mystery</strong> behind why average lifespans fluctuate over time is entirely explained by the combination of these four specific variables.<br><br>
-            This mathematical certainty proves that longevity is not arbitrary; it is the direct, quantifiable result of how a country manages its wealth, funds its hospitals, protects its water, and regulates its air pollution.
-        </p>
+        
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+            <div style="width: 140px; font-size: 14px; color: #333; font-weight: 600;">Healthcare spending</div>
+            <div style="flex: 1; background-color: #f1f5f9; border-radius: 10px; height: 10px; overflow: hidden;"><div style="height: 100%; border-radius: 10px; width: 100%; background-color: #3b82f6;"></div></div>
+            <div style="width: 65px; font-size: 14px; font-weight: 700; text-align: right; color: #3b82f6;">+0.0042</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+            <div style="width: 140px; font-size: 14px; color: #333; font-weight: 600;">Water access</div>
+            <div style="flex: 1; background-color: #f1f5f9; border-radius: 10px; height: 10px; overflow: hidden;"><div style="height: 100%; border-radius: 10px; width: 70%; background-color: #10b981;"></div></div>
+            <div style="width: 65px; font-size: 14px; font-weight: 700; text-align: right; color: #10b981;">+0.135</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+            <div style="width: 140px; font-size: 14px; color: #333; font-weight: 600;">GDP per capita</div>
+            <div style="flex: 1; background-color: #f1f5f9; border-radius: 10px; height: 10px; overflow: hidden;"><div style="height: 100%; border-radius: 10px; width: 50%; background-color: #f59e0b;"></div></div>
+            <div style="width: 65px; font-size: 14px; font-weight: 700; text-align: right; color: #f59e0b;">+0.00008</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+            <div style="width: 140px; font-size: 14px; color: #333; font-weight: 600;">CO₂ emissions</div>
+            <div style="flex: 1; background-color: #f1f5f9; border-radius: 10px; height: 10px; overflow: hidden;"><div style="height: 100%; border-radius: 10px; width: 30%; background-color: #ef4444;"></div></div>
+            <div style="width: 65px; font-size: 14px; font-weight: 700; text-align: right; color: #ef4444;">-0.089</div>
+        </div>
+        
+        <div style="background-color: #f5f3ff; color: #581c87; border-left: 4px solid #9b51e0; border-radius: 8px; padding: 18px 20px; font-size: 14.5px; line-height: 1.7; margin-top: 24px; display: flex; gap: 12px;">
+            <div>✦</div>
+            <div><strong>Explanation:</strong> The model looks at all data together. To ensure our conclusions are not visual illusions, we used a Robust Linear Model (RLM). It confirms that Healthcare spending and water access are the top positive drivers. CO₂ is the strongest negative driver.</div>
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
 
-# ── CONCLUSION BOX ───────────────────────────────────────────────────────────
+# ── SECTION 5: INSIGHTS & RECOMMENDATIONS AND CONCLUSION ─────────────────────
+st.markdown('<div class="section-header"><span class="dot" style="color:#10b981;">●</span> INSIGHTS & RECOMMENDATIONS</div>', unsafe_allow_html=True)
+
+i1, i2 = st.columns(2)
+
+with i1:
+    st.markdown("""
+    <div class="white-card" style="background-color: #f0f9ff; border: 1px solid #bae6fd; padding: 24px; margin-bottom: 16px;">
+        <h4 style="color: #0c4a6e; margin-top: 0; font-size: 16px; display: flex; align-items: center; gap: 8px;">🏥 Increase healthcare investment</h4>
+        <p style="color: #0c4a6e; font-size: 14.5px; margin: 0; line-height: 1.7; opacity: 0.9;">Every $1,000 increase in per-capita healthcare spending is linked to measurably longer life expectancy. Efficient spending matters more than raw totals — the UK proves this by achieving superior outcomes with fewer resources.</p>
+    </div>
+    <div class="white-card" style="background-color: #ecfdf5; border: 1px solid #a7f3d0; padding: 24px;">
+        <h4 style="color: #064e3b; margin-top: 0; font-size: 16px; display: flex; align-items: center; gap: 8px;">💧 Ensure universal water access</h4>
+        <p style="color: #064e3b; font-size: 14.5px; margin: 0; line-height: 1.7; opacity: 0.9;">Expanding clean water infrastructure reduces preventable waterborne diseases that disproportionately shorten life expectancy in vulnerable populations. Maintaining this 100% baseline is an absolute prerequisite.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+with i2:
+    st.markdown("""
+    <div class="white-card" style="background-color: #fffbeb; border: 1px solid #fde68a; padding: 24px; margin-bottom: 16px;">
+        <h4 style="color: #78350f; margin-top: 0; font-size: 16px; display: flex; align-items: center; gap: 8px;">💰 Promote economic growth</h4>
+        <p style="color: #78350f; font-size: 14.5px; margin: 0; line-height: 1.7; opacity: 0.9;">Policies that grow GDP per capita — through education, trade, and infrastructure — lift living standards and indirectly extend lives via better nutrition and healthcare access. A strong economy provides the essential baseline.</p>
+    </div>
+    <div class="white-card" style="background-color: #fef2f2; border: 1px solid #fecaca; padding: 24px;">
+        <h4 style="color: #7f1d1d; margin-top: 0; font-size: 16px; display: flex; align-items: center; gap: 8px;">☁️ Reduce carbon emissions</h4>
+        <p style="color: #7f1d1d; font-size: 14.5px; margin: 0; line-height: 1.7; opacity: 0.9;">Transitioning to cleaner energy and enforcing stricter emission standards directly reduces pollution-linked disease burden — confirmed significant by the regression analysis. Air toxicity aggressively counteracts the benefits of medical spending.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+# ── CONCLUSION BOX (EXACTLY AS SCREENSHOT HTML) ──────────────────────────────
+# Putting everything inline guarantees it overrides any default Streamlit themes
 st.markdown("""
-<div class="conclusion-box">
-    <h3 style="margin-top: 0; display: flex; align-items: center; gap: 8px; color: #a78bfa;">✦ Final Conclusion 🌍</h3>
+<div style="background-color: #1a1528; border-radius: 12px; padding: 32px; color: white; margin-top: 48px; box-shadow: 0px 10px 25px rgba(0,0,0,0.15);">
+    <h3 style="margin-top: 0; display: flex; align-items: center; gap: 8px; color: #a78bfa; font-weight: 800; font-size: 22px;">✦ Final Conclusion 🌍</h3>
     
     <p style="color: #e2e8f0; font-size: 15px; line-height: 1.8; margin-bottom: 16px;">
         The Robust Regression (RLM) analysis confirms that <strong>Healthcare Spending</strong> is a statistically significant positive driver of life expectancy (p &lt; 0.05), while <strong>CO₂ Emissions</strong> acts as a highly significant negative driver (p &lt; 0.001). This statistical confidence proves mathematically that while financial investments into health infrastructure steadily add years to a population's lifespan, environmental degradation actively and aggressively subtracts from it.
@@ -448,19 +485,18 @@ st.markdown("""
     </p>
 
     <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.1);">
-        <span class="conclusion-tag" style="background-color: #9b51e0; color: white;">Healthcare spending ↑</span>
-        <span class="conclusion-tag" style="background-color: #f59e0b; color: white;">GDP per capita ↑</span>
-        <span class="conclusion-tag" style="background-color: #10b981; color: white;">Water access ↑</span>
-        <span class="conclusion-tag" style="background-color: #ef4444; color: white;">CO₂ emissions ↓</span>
-        <span class="conclusion-tag" style="background-color: #e5e7eb; color: #1f2937;">R² = 0.94</span>
+        <span style="background-color: #9b51e0; color: white; display: inline-block; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 700; margin-right: 10px; margin-top: 12px;">Healthcare spending ↑</span>
+        <span style="background-color: #f59e0b; color: white; display: inline-block; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 700; margin-right: 10px; margin-top: 12px;">GDP per capita ↑</span>
+        <span style="background-color: #10b981; color: white; display: inline-block; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 700; margin-right: 10px; margin-top: 12px;">Water access ↑</span>
+        <span style="background-color: #ef4444; color: white; display: inline-block; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 700; margin-right: 10px; margin-top: 12px;">CO₂ emissions ↓</span>
+        <span style="background-color: #e5e7eb; color: #1f2937; display: inline-block; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 700; margin-right: 10px; margin-top: 12px;">R² = 0.94</span>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-# ── Footer ─────────────────────────────────────────────────────────────────────
-st.markdown(f"""
-<div style="text-align:center;padding:32px 0 16px;font-size:12px;color:#6b7280">
-    SDG 3 Life Expectancy Dashboard &nbsp;·&nbsp; Juliana Paula T. Binas &nbsp;·&nbsp; BSIS 3A<br>
-    Data Sources: World Bank Open Data · Our World in Data &nbsp;·&nbsp; Period: 2000–2024
+# Centered down arrow for footer
+st.markdown("""
+<div style="text-align:center; margin-top: 24px; margin-bottom: 16px;">
+    <button style="background: white; border: 1px solid #ddd; border-radius: 50%; width: 40px; height: 40px; color: #666; cursor: pointer; font-size: 20px; box-shadow: 0px 4px 6px rgba(0,0,0,0.05);">↓</button>
 </div>
 """, unsafe_allow_html=True)
