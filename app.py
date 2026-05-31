@@ -251,7 +251,6 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-
 # ── CONDITIONAL RENDERING VARIABLES ──────────────────────────────────────────
 show_all = selected_metric == "All of the above"
 
@@ -282,7 +281,6 @@ if show_all or selected_metric == "Life Expectancy":
         fig2.update_layout(showlegend=False, margin=dict(l=0, r=0, t=20, b=0), plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(fig2, use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
-
 
 # ── SECTION 2: KEY DRIVERS ───────────────────────────────────────────────────
 if show_all or selected_metric in ["Healthcare Spending", "GDP per capita", "Water Access", "CO2 Emissions"]:
@@ -332,7 +330,6 @@ if show_all or selected_metric in ["Healthcare Spending", "GDP per capita", "Wat
             fig_c.update_layout(margin=dict(l=0, r=0, t=10, b=0), plot_bgcolor='rgba(0,0,0,0)', showlegend=False)
             st.plotly_chart(fig_c, use_container_width=True)
             st.markdown("""<div style="background-color: #fef2f2; color: #991b1b; border-left: 4px solid #ef4444; padding: 12px; border-radius: 8px; font-size: 13.5px; margin-top: 12px; line-height: 1.6;"><strong>Negative ↓</strong> — High carbon emissions indicate severe air pollution. Long-term exposure triggers respiratory diseases.</div></div>""", unsafe_allow_html=True)
-
 
 # ── SECTION 3: REGRESSION MODEL ──────────────────────────────────────────────
 if show_all:
@@ -410,7 +407,6 @@ if show_all:
             </div>
         </div>
         """, unsafe_allow_html=True)
-
 
 # ── SECTION 4: CONCLUSION BOX ────────────────────────────────────────────────
 if show_all:
