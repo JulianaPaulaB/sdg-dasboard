@@ -212,12 +212,12 @@ with col_trend:
         if cnt != "USA":
             traces.append(go.Scatter(x=YEARS, y=UK["le"], name="United Kingdom",
                                      line=dict(color=PURPLE, width=2.5),
-                                     fill="tozeroy", fillcolor=PURPLE+"22",
+                                     fill="tozeroy", fillcolor="rgba(156,39,176,0.13)",
                                      mode="lines+markers", marker=dict(size=3)))
         if cnt != "UK":
             traces.append(go.Scatter(x=YEARS, y=USA["le"], name="United States",
                                      line=dict(color=CYAN, width=2.5, dash="dash"),
-                                     fill="tozeroy", fillcolor=CYAN+"15",
+                                     fill="tozeroy", fillcolor="rgba(0,188,212,0.08)",
                                      mode="lines+markers", marker=dict(size=3)))
         fig = go.Figure(traces)
         fig.update_layout(**base_layout(yrange=[74, 85], ysuffix=" yrs"),
@@ -268,7 +268,7 @@ def driver_scatter(col, canvas_id, x_key, title, color, bg, border, insight, ref
             if cnt != "USA":
                 traces.append(go.Scatter(x=UK[x_key], y=UK["le"], name="UK",
                                          mode="markers",
-                                         marker=dict(color=color+"cc", size=5)))
+                                         marker=dict(color=color, size=5, opacity=0.75)))
             if cnt != "UK":
                 pairs = [(x, y) for x, y in zip(USA[x_key], USA["le"])
                          if x is not None and y is not None]
@@ -276,7 +276,7 @@ def driver_scatter(col, canvas_id, x_key, title, color, bg, border, insight, ref
                     xs, ys = zip(*pairs)
                     traces.append(go.Scatter(x=xs, y=ys, name="USA",
                                              mode="markers",
-                                             marker=dict(color=CYAN+"cc", size=5)))
+                                             marker=dict(color=CYAN, size=5, opacity=0.75)))
             fig = go.Figure(traces)
             fig.update_layout(**base_layout(yrange=[74, 84]), height=150)
             st.plotly_chart(fig, use_container_width=True,
