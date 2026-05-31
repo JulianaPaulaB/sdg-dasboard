@@ -22,19 +22,28 @@ st.markdown("""
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
 
-    /* Top Banner */
-    .top-banner {
+    /* Academic Header Styles */
+    .academic-header {
         background-color: #1a1528;
         border-radius: 12px;
-        padding: 24px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+        padding: 32px;
         color: white;
         margin-bottom: 24px;
+        border-left: 8px solid #9b51e0;
     }
-    .badge-purple { background-color: #ebdcf9; color: #6b21a8; padding: 6px 16px; border-radius: 20px; font-size: 14px; font-weight: 600;}
-    .badge-light { background-color: #f3e8ff; color: #4c1d95; padding: 6px 16px; border-radius: 20px; font-size: 14px; font-weight: 600;}
+    .academic-title { font-size: 32px; font-weight: 800; margin-bottom: 8px; color: #ffffff; }
+    .academic-subtitle { font-size: 20px; font-weight: 600; color: #ebdcf9; margin-bottom: 24px; }
+    .academic-meta { font-size: 15px; color: #cbd5e1; margin-bottom: 8px; }
+    .academic-quote {
+        background: rgba(255,255,255,0.05);
+        border-left: 4px solid #0ea5e9;
+        padding: 16px 24px;
+        margin-top: 24px;
+        border-radius: 0 8px 8px 0;
+        font-size: 15px;
+        line-height: 1.6;
+        color: #f8fafc;
+    }
 
     /* Section Headers */
     .section-header {
@@ -101,6 +110,15 @@ st.markdown("""
         margin-top: 16px;
         border: 1px solid #e2e8f0;
     }
+    
+    .how-to-read {
+        font-size: 12px;
+        font-weight: 600;
+        color: #64748b;
+        text-transform: uppercase;
+        margin-top: 12px;
+        margin-bottom: 4px;
+    }
 
     /* Progress Bars (Correlation) */
     .bar-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
@@ -134,6 +152,9 @@ def load_data():
         df_us.loc[20:21, 'Life Expectancy'] -= 1.5
         df = pd.concat([df_uk, df_us])
     
+    # Calculate Healthcare Efficiency (Years of life per $1k spent)
+    df['Efficiency'] = df['Life Expectancy'] / (df['Healthcare Spending'] / 1000)
+
     # Model Calculation for Predictions
     X = df[["Healthcare Spending", "Water Access", "GDP per capita", "CO2 Emissions"]]
     y = df["Life Expectancy"]
@@ -151,18 +172,17 @@ C_ORANGE = "#f59e0b"
 C_RED = "#ef4444"
 C_GREEN = "#10b981"
 
-# ── HEADER BANNER ────────────────────────────────────────────────────────────
+# ── ACADEMIC HEADER ──────────────────────────────────────────────────────────
 st.markdown("""
-<div class="top-banner">
-    <div style="display: flex; align-items: center; gap: 16px;">
-        <div class="badge-purple">✦ SDG 3 · Good Health</div>
-        <div>
-            <h2 style="margin: 0; font-size: 24px; font-weight: 800;">Drivers of Life Expectancy Across Countries</h2>
-            <p style="margin: 0; font-size: 14px; color: #cbd5e1; margin-top: 4px;">Juliana Paula T. Binas · BSIS 3A · Analytics Techniques and Tools</p>
-        </div>
-    </div>
-    <div style="display: flex; gap: 12px;">
-        <div class="badge-light">2000–2024</div>
+<div class="academic-header">
+    <div class="academic-title">🌍 Understanding the Drivers of Life Expectancy Across Countries</div>
+    <div class="academic-subtitle">SDG 3: Good Health and Well-Being</div>
+    <div style="border-top: 1px solid rgba(255,255,255,0.2); margin: 16px 0;"></div>
+    <div class="academic-meta"><strong>Prepared by:</strong> Juliana Paula T. Binas</div>
+    <div class="academic-meta"><strong>Course, Year & Section:</strong> BSIS 3A</div>
+    <div class="academic-quote">
+        <strong style="color: #0ea5e9; font-size: 16px;">Research Question:</strong> What factors influence Life Expectancy across countries?<br><br>
+        This dashboard investigates the key drivers of life expectancy using real-world data from the World Bank and Our World in Data. We apply Multiple Linear Regression and Robust Regression (RLM) to identify which variables significantly explain the variation in how long people live.
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -172,52 +192,40 @@ st.markdown(f"""
 <div class="kpi-container">
     <div class="kpi-card" style="border-top: 4px solid {C_UK};">
         <div>🫀</div>
-        <div class="kpi-title">Life Expectancy</div>
+        <div class="kpi-title">Avg Life Expectancy</div>
         <div class="kpi-value">78.5 yrs</div>
-        <div class="kpi-delta-down">▼ -0.16 vs 2020</div>
+        <div class="kpi-delta-down">▼ Post-2020 Drop</div>
     </div>
     <div class="kpi-card" style="border-top: 4px solid #3b82f6;">
         <div>🏥</div>
-        <div class="kpi-title">Healthcare Spending</div>
+        <div class="kpi-title">Avg Healthcare Spending</div>
         <div class="kpi-value">$8,863</div>
-        <div class="kpi-delta-down">▼ -$606 vs 2020</div>
+        <div class="kpi-delta-up">▲ Rising annually</div>
     </div>
     <div class="kpi-card" style="border-top: 4px solid {C_ORANGE};">
         <div>💰</div>
-        <div class="kpi-title">GDP Per Capita</div>
+        <div class="kpi-title">Avg GDP Per Capita</div>
         <div class="kpi-value">$61k</div>
-        <div class="kpi-delta-down">▼ -$5k vs 2020</div>
+        <div class="kpi-delta-up">▲ Rising annually</div>
     </div>
     <div class="kpi-card" style="border-top: 4px solid {C_RED};">
         <div>☁️</div>
         <div class="kpi-title">CO₂ Emissions</div>
         <div class="kpi-value">9.9 tons</div>
-        <div class="kpi-delta-up">▲ 0.58 vs 2020</div>
+        <div class="kpi-delta-down">▼ Dropping overall</div>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-# ── SECTION 1: INTRODUCTION ──────────────────────────────────────────────────
-st.markdown('<div class="section-header"><span style="color:#0ea5e9; font-size: 22px;">●</span> THE CORE QUESTION</div>', unsafe_allow_html=True)
 
-st.markdown("""
-<div class="white-card">
-    <p style="font-size: 16px; color: #1e293b; line-height: 1.7; margin: 0;">
-        <strong>What actually makes a population live longer?</strong> Is it just about having a massive economy, or do environmental factors play a hidden role? <br><br>
-        To answer this, we analyzed 24 years of data from the United States and the United Kingdom. We didn't just look at medical data; we looked at <strong>Money</strong> (Healthcare Spend, GDP), <strong>Environment</strong> (CO₂ Emissions), and <strong>Basic Needs</strong> (Water Access). By putting these into a statistical model, we can prove exactly which factors add years to our lives, and which ones take them away.
-    </p>
-</div>
-""", unsafe_allow_html=True)
-
-
-# ── SECTION 2: TRENDS OVER TIME ──────────────────────────────────────────────
-st.markdown('<div class="section-header"><span style="color:#9b51e0; font-size: 22px;">●</span> THE BIG PICTURE: TRENDS OVER TIME</div>', unsafe_allow_html=True)
+# ── SECTION 1: TRENDS OVER TIME ──────────────────────────────────────────────
+st.markdown('<div class="section-header"><span style="color:#9b51e0; font-size: 22px;">●</span> PART 1: THE BIG PICTURE TRENDS</div>', unsafe_allow_html=True)
 
 c1, c2 = st.columns([2.5, 1])
 
 with c1:
     st.markdown('<div class="white-card">', unsafe_allow_html=True)
-    st.markdown('<strong style="font-size: 16px;">📈 Life expectancy over time (2000-2024)</strong>', unsafe_allow_html=True)
+    st.markdown('<strong style="font-size: 16px;">📈 Life Expectancy Over Time (2000-2024)</strong>', unsafe_allow_html=True)
     
     fig1 = px.line(df, x='Year', y='Life Expectancy', color='Country Name', 
                    color_discrete_map={'United Kingdom': C_UK, 'United States': C_US}, markers=True)
@@ -225,16 +233,16 @@ with c1:
     st.plotly_chart(fig1, use_container_width=True)
     
     st.markdown("""
-    <div class="insight-box insight-purple">
-        <div style="font-size:24px;">💡</div>
-        <div><strong>What is this showing?</strong> Both countries saw life expectancy steadily rise from 2000 to 2019, proving that modern medicine works. However, notice the sharp plunge in 2020. This is the statistical footprint of the COVID-19 pandemic. Also, notice how the purple line (UK) stays consistently above the blue line (USA) across the entire 24-year period.</div>
+    <div class="how-to-read">🔍 How to read this chart:</div>
+    <div class="explainer-text" style="margin-top: 0;">
+        Follow the lines from left to right. A rising line means people are living longer. The sharp plunge in 2020-2021 represents the tragic impact of the COVID-19 pandemic on global health. Notice how the UK (purple) stays consistently above the USA (blue) across the entire timeline.
     </div>
     </div>
     """, unsafe_allow_html=True)
 
 with c2:
     st.markdown('<div class="white-card">', unsafe_allow_html=True)
-    st.markdown('<strong style="font-size: 16px;">📊 US vs UK in 2021</strong>', unsafe_allow_html=True)
+    st.markdown('<strong style="font-size: 16px;">📊 US vs UK (2021)</strong>', unsafe_allow_html=True)
     
     df_2021 = df[df['Year'] == 2021]
     fig2 = px.bar(df_2021, x='Country Name', y='Life Expectancy', color='Country Name',
@@ -243,82 +251,72 @@ with c2:
     st.plotly_chart(fig2, use_container_width=True)
     
     st.markdown("""
-    <div class="explainer-text">
-        <strong>The Efficiency Paradox:</strong><br><br>
-        The USA spends almost <em>double</em> the amount of money per person on healthcare compared to the UK. Yet, as the chart shows, the UK lives about 3 years longer. This tells us a crucial fact: <strong>How a country manages its health system is just as important as how much money it throws at it.</strong>
+    <div class="insight-box insight-purple" style="margin-top: 24px;">
+        <div>Even though the USA is historically wealthier, the UK citizens live about 3 years longer on average. Why? We explore the reasons below.</div>
     </div>
     </div>
     """, unsafe_allow_html=True)
 
+# ── SECTION 2: NEW! HEALTHCARE EFFICIENCY ────────────────────────────────────
+st.markdown('<div class="section-header"><span style="color:#f59e0b; font-size: 22px;">●</span> PART 2: THE HEALTHCARE EFFICIENCY PARADOX</div>', unsafe_allow_html=True)
+
+e1, e2 = st.columns([1, 2])
+
+with e1:
+    st.markdown("""
+    <div class="white-card">
+        <h4 style="color:#d97706; margin-top:0;">More Money ≠ Longer Life</h4>
+        <p style="font-size: 15px; color: #334155; line-height: 1.6;">
+            The USA spends nearly double the amount of money per person on healthcare compared to the UK. However, the UK gets much more "bang for its buck."<br><br>
+            The chart to the right shows <strong>Healthcare Efficiency</strong>—calculated as how many years of life expectancy a country gets for every $1,000 spent on a person.<br><br>
+            As spending in the US has skyrocketed over the years, their efficiency has actually dropped, meaning they are paying more for less.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+with e2:
+    st.markdown('<div class="white-card">', unsafe_allow_html=True)
+    st.markdown('<strong style="font-size: 16px;">📉 Years of Life Expected per $1,000 Spent (Efficiency)</strong>', unsafe_allow_html=True)
+    fig_e = px.line(df, x='Year', y='Efficiency', color='Country Name', color_discrete_map={'United Kingdom': C_UK, 'United States': C_US})
+    fig_e.update_layout(margin=dict(l=0, r=0, t=20, b=0), plot_bgcolor='rgba(0,0,0,0)', yaxis=dict(showgrid=True, gridcolor='#f1f1f1', title="Years per $1k"))
+    st.plotly_chart(fig_e, use_container_width=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
 # ── SECTION 3: THE 4 PILLARS EXPLAINED ───────────────────────────────────────
-st.markdown('<div class="section-header"><span style="color:#f59e0b; font-size: 22px;">●</span> DEEP DIVE: THE 4 PILLARS OF LIFESPAN</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-header"><span style="color:#0ea5e9; font-size: 22px;">●</span> PART 3: DEEP DIVE INTO THE 4 MAIN DRIVERS</div>', unsafe_allow_html=True)
 
 d1, d2 = st.columns(2)
 
 with d1:
-    st.markdown('<div class="white-card"><h4 style="color:#3b82f6; margin-top:0;">🏥 1. Healthcare Spending</h4>', unsafe_allow_html=True)
+    st.markdown('<div class="white-card"><h4 style="color:#3b82f6; margin-top:0;">🏥 1. Healthcare Spending vs Life Expectancy</h4>', unsafe_allow_html=True)
     fig_h = px.scatter(df, x='Healthcare Spending', y='Life Expectancy', color='Country Name', color_discrete_map={'United Kingdom': C_UK, 'United States': C_US}, trendline="ols")
     fig_h.update_layout(margin=dict(l=0, r=0, t=10, b=0), plot_bgcolor='rgba(0,0,0,0)')
     st.plotly_chart(fig_h, use_container_width=True)
-    st.markdown("""<div class="explainer-text"><strong>Why it matters:</strong> Money buys better hospitals, faster emergency response, and advanced medical research. The upward sloping line proves that as spending goes up, life expectancy goes up. However, there are "diminishing returns"—eventually, spending more money stops adding extra years to life unless the system itself improves.</div></div>""", unsafe_allow_html=True)
+    st.markdown("""<div class="how-to-read">🔍 How to read this chart:</div><div class="explainer-text" style="margin-top: 0;"><strong>The trend line goes UP.</strong> This proves that generally, investing more money into healthcare infrastructure extends lives. However, look at the blue dots (USA)—they stretch far to the right (massive spending) without going much higher up (longer life), proving the efficiency paradox discussed above.</div></div>""", unsafe_allow_html=True)
 
     st.markdown('<div class="white-card" style="margin-top: 16px;"><h4 style="color:#f59e0b; margin-top:0;">💰 2. GDP per capita (Wealth)</h4>', unsafe_allow_html=True)
     fig_g = px.scatter(df, x='GDP per capita', y='Life Expectancy', color='Country Name', color_discrete_map={'United Kingdom': C_UK, 'United States': C_US}, trendline="ols")
     fig_g.update_layout(margin=dict(l=0, r=0, t=10, b=0), plot_bgcolor='rgba(0,0,0,0)')
     st.plotly_chart(fig_g, use_container_width=True)
-    st.markdown("""<div class="explainer-text"><strong>Why it matters:</strong> GDP isn't just "richness." It represents infrastructure. Higher GDP means safer roads, safer workplaces, better nutrition in grocery stores, and less poverty-induced stress. Wealthier populations generally live in safer environments, which directly translates to longer lives.</div></div>""", unsafe_allow_html=True)
-
+    st.markdown("""<div class="how-to-read">🔍 How to read this chart:</div><div class="explainer-text" style="margin-top: 0;"><strong>The trend line goes UP.</strong> Wealthier populations generally live in safer environments, have better diets, and face less poverty-induced stress, directly translating to longer lives.</div></div>""", unsafe_allow_html=True)
 
 with d2:
     st.markdown('<div class="white-card"><h4 style="color:#ef4444; margin-top:0;">☁️ 3. CO₂ Emissions (Pollution)</h4>', unsafe_allow_html=True)
     fig_c = px.scatter(df, x='CO2 Emissions', y='Life Expectancy', color='Country Name', color_discrete_map={'United Kingdom': C_UK, 'United States': C_US}, trendline="ols")
     fig_c.update_layout(margin=dict(l=0, r=0, t=10, b=0), plot_bgcolor='rgba(0,0,0,0)')
     st.plotly_chart(fig_c, use_container_width=True)
-    st.markdown("""<div class="explainer-text"><strong>Why it matters:</strong> This is the silent killer. The line slopes downward, meaning higher emissions equal shorter lives. High CO₂ indicates heavy industrial pollution, poor air quality, and smog. This leads directly to asthma, lung cancer, and heart disease. You cannot buy a long life if the air you breathe is toxic.</div></div>""", unsafe_allow_html=True)
+    st.markdown("""<div class="how-to-read">🔍 How to read this chart:</div><div class="explainer-text" style="margin-top: 0;"><strong>The trend line goes DOWN.</strong> This is the silent killer. Higher CO₂ means heavy pollution and smog, leading to respiratory and heart disease. You cannot simply buy a long life if the air you breathe is toxic. Less pollution = longer life.</div></div>""", unsafe_allow_html=True)
 
     st.markdown('<div class="white-card" style="margin-top: 16px;"><h4 style="color:#10b981; margin-top:0;">💧 4. Access to Clean Water</h4>', unsafe_allow_html=True)
     fig_w = px.box(df, x='Country Name', y='Water Access', color='Country Name', color_discrete_map={'United Kingdom': C_UK, 'United States': C_US})
     fig_w.update_layout(margin=dict(l=0, r=0, t=10, b=0), plot_bgcolor='rgba(0,0,0,0)', showlegend=False)
     st.plotly_chart(fig_w, use_container_width=True)
-    st.markdown("""<div class="explainer-text"><strong>Why it matters:</strong> For the UK and USA, water access is nearly 100%. Why include it? Because it acts as a "baseline." Historically, lacking clean water is the #1 cause of low life expectancy (due to diseases like cholera). Because these two countries have solved this, it allows them to live long enough to worry about the other 3 factors.</div></div>""", unsafe_allow_html=True)
+    st.markdown("""<div class="how-to-read">🔍 How to read this chart:</div><div class="explainer-text" style="margin-top: 0;"><strong>The Box Plot is flat at the top.</strong> For the UK and USA, water access is nearly 100%. Lacking clean water is historically the #1 cause of short lifespans. Because these two countries have solved this basic human need, it allows them to live long enough to worry about the other 3 factors.</div></div>""", unsafe_allow_html=True)
 
 
-# ── SECTION 4: CORRELATION ANALYSIS ──────────────────────────────────────────
-st.markdown('<div class="section-header"><span style="color:#0ea5e9; font-size: 22px;">●</span> HOW STRONG IS THE LINK? (CORRELATION)</div>', unsafe_allow_html=True)
-
-st.markdown("""
-<div class="white-card">
-    <p style="font-size: 15px; color: #333; line-height: 1.6; margin-bottom: 24px;">
-        <strong>Understanding Correlation:</strong> We use a math formula to calculate a score between -1.0 and +1.0.<br>
-        • A score near <strong>+1.0</strong> means they move together (e.g., Spend more money = live longer).<br>
-        • A score near <strong>-1.0</strong> means opposites (e.g., More pollution = live shorter).<br>
-        • A score near <strong>0</strong> means there is no relationship at all.
-    </p>
-    
-    <div class="bar-row">
-        <div class="bar-label">Healthcare Spend</div>
-        <div class="bar-track"><div class="bar-fill" style="width: 87%; background-color: #3b82f6;"></div></div>
-        <div class="bar-value" style="color: #3b82f6;">+0.87</div>
-        <div class="tag" style="background:#e0e7ff; color:#4338ca;">Strong Link</div>
-    </div>
-    <div class="bar-row">
-        <div class="bar-label">GDP per capita</div>
-        <div class="bar-track"><div class="bar-fill" style="width: 82%; background-color: #f59e0b;"></div></div>
-        <div class="bar-value" style="color: #f59e0b;">+0.82</div>
-        <div class="tag" style="background:#fef3c7; color:#b45309;">Strong Link</div>
-    </div>
-    <div class="bar-row">
-        <div class="bar-label">CO₂ Emissions</div>
-        <div class="bar-track"><div class="bar-fill" style="width: 63%; background-color: #ef4444;"></div></div>
-        <div class="bar-value" style="color: #ef4444;">-0.63</div>
-        <div class="tag" style="background:#fee2e2; color:#991b1b;">Negative Link</div>
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
-
-# ── SECTION 5: THE MATH MADE SIMPLE ──────────────────────────────────────────
-st.markdown('<div class="section-header"><span style="color:#10b981; font-size: 22px;">●</span> THE MATH MADE SIMPLE (PREDICTIVE MODEL)</div>', unsafe_allow_html=True)
+# ── SECTION 4: THE MATH MADE SIMPLE ──────────────────────────────────────────
+st.markdown('<div class="section-header"><span style="color:#10b981; font-size: 22px;">●</span> PART 4: THE PREDICTIVE MODEL (ROBUST REGRESSION)</div>', unsafe_allow_html=True)
 
 r1, r2 = st.columns([1.5, 1])
 
@@ -359,7 +357,7 @@ st.markdown("""
     <p style="color: #e2e8f0; font-size: 16px; line-height: 1.7; margin-bottom: 0;">
         If governments truly want to achieve <strong>SDG 3: Good Health and Well-Being</strong>, they cannot treat healthcare as an isolated sector. The data forces us to look at the big picture:
         <br><br>
-        Yes, governments must fund hospitals (Healthcare Spending) and ensure basic infrastructure (Water, GDP). But crucially, <strong>environmental policy is health policy</strong>. Ignoring climate change and air pollution (CO₂ emissions) actively cancels out the billions of dollars spent on medicine. You cannot medicate your way out of toxic air. True well-being requires both economic investment and environmental protection.
+        Yes, governments must fund hospitals (Healthcare Spending) and ensure basic infrastructure (Water, GDP). But crucially, <strong>environmental policy is health policy</strong>. Ignoring climate change and air pollution (CO₂ emissions) actively cancels out the billions of dollars spent on medicine. Furthermore, how money is spent is just as important as how much is spent. True well-being requires smart economic investment paired with strict environmental protection.
     </p>
 </div>
 """, unsafe_allow_html=True)
